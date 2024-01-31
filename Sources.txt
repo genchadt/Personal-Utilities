@@ -1,6 +1,0 @@
-bchunk		->	https://github.com/extramaster/bchunk
-CHDMAN		-> 	https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman
-FFmpeg		->	https://ffmpeg.org/
-IPinfo CLI 	-> 	https://github.com/ipinfo/cli
-ProcessExplorer ->	https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer
-ProcessMonitor 	->	https://learn.microsoft.com/en-us/sysinternals/downloads/procmon
