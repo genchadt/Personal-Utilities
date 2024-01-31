@@ -1,0 +1,4 @@
+firefox
+python
+speedtest-cli
+ungoogled-chromium

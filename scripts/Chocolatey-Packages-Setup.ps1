@@ -1,0 +1,19 @@
+param (
+    [string]$packagesFile = "packages.txt",
+    [switch]$force
+)
+
+try {
+    $packages = Get-Content $packagesFile -ErrorAction Stop
+
+    foreach ($package in $packages) {
+        $installCommand = if ($force) { "choco install $package -y"} else { "choco install $package" }
+        Invoke-Expression $installCommand
+    }
+
+    Write-Host "Chocolatey packages installation complete."
+} catch {
+    Write-Host "An error occurred: $_"
+    Add-Content -Path "errorLog.txt" -Value ("[" + (Get-Date) + "] Error: $_")
+    exit 1
+}
