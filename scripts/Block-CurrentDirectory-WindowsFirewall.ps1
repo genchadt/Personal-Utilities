@@ -36,7 +36,7 @@
     Administrative privileges are required to run this script.
 
     Script Version: 1.0
-    Author: Slice
+    Author: Chad
     Creation Date: 2023-12-07 03:30:00 GMT
 #>
 
@@ -58,7 +58,7 @@ function Write-VerboseLog {
 
 try {
     # Function to list all firewall rules created by the script
-    function List-ScriptCreatedFirewallRules {
+    function ListScriptCreatedFirewallRules {
         Get-NetFirewallRule | Where-Object { $_.DisplayName -like "Block * Folder" }
     }
 
