@@ -64,7 +64,7 @@ Extract-Archives simplifies the process of extracting files from archives. It su
     7-Zip MUST be installed with the $PATH environment variable(s) configured. https://www.7-zip.org/
 
     Script Version: 1.0
-    Author: Slice
+    Author: Chad
     Creation Date: 2023-12-07 03:30:00 GMT
 #>
 
