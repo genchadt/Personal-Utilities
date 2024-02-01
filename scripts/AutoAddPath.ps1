@@ -1,71 +1,63 @@
-<#
-.SYNOPSIS
-    AutoAddPath.ps1 - Adds the current directory and all subdirectories to the system $PATH environment variable.
-
-.DESCRIPTION
-    This script adds the directory from which it is invoked, along with all its subdirectories, to the system $PATH environment variable. It checks for the existence of each directory in the $PATH to avoid duplication.
-
-.EXAMPLE
-    PS> .\AutoAddPath.ps1
-    This command runs the script in the current directory, adding it and all subdirectories to the system $PATH.
-
-.INPUTS
-    None
-
-.OUTPUTS
-    String
-    Outputs the updated $PATH variable to the console for verification.
-
-.NOTES
-    Administrative privileges are required to run this script.
-
-    Script Version: 2.2
-    Author: Chad
-    Creation Date: 2024-01-29 03:30:00 GMT
-#>
-
-param (
-    [switch]$NoPrompt
+# Define exclusion list with wildcards
+$exclusionList = @(
+    "$($PSScriptRoot)\ext\NKit_v1.4\*"
 )
 
-try {
-    # Get the current directory and its subdirectories
-    $pathsToAdd = @((Get-Location), (Get-ChildItem -LiteralPath $PWD -Directory).FullName)
+# Backup system PATH variables
+regedit /e "$env:TEMP\PATH_Backup.reg" "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 
-    # Filter paths that don't exist in the current system $PATH
-    $pathsToAdd = $pathsToAdd | Where-Object { [Environment]::GetEnvironmentVariable("PATH", "Machine") -notlike "*$_*" }
+# Initialize variables
+$systemPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine").ToLower()
+$currentPath = Get-Item -LiteralPath $PSScriptRoot | Select-Object -ExpandProperty FullName
 
-    # Display confirmation message
-    if ($pathsToAdd.Count -eq 0) {
-        Write-Host "No new directories to add. Operation cancelled."
-        exit
+# Get all directories excluding those in the exclusion list and subdirectories
+$directories = Get-ChildItem -Recurse -Directory | Where-Object { 
+    $excluded = $false
+    foreach ($excludePattern in $exclusionList) {
+        if ($_.FullName -like $excludePattern) {
+            $excluded = $true
+            break
+        }
     }
+    -not $excluded
+} | Select-Object -ExpandProperty FullName
 
-    Write-Host "The following directories are about to be added to your system `$PATH` variable:"
-    $pathsToAdd | ForEach-Object { Write-Host $_ }
+# Filter out directories that already exist in the system PATH
+$directories = $directories | Where-Object { -not ($systemPath -split ';').Contains($_.ToLower()) }
 
-    if (-not $NoPrompt -and (Read-Host "Do you want to add these directories to your system `$PATH` variable? Y/N") -ne 'Y') {
-        Write-Host "Operation cancelled by user."
-        exit
-    }
+# Display paths to the user
+Write-Host "Paths to be added to PATH:"
+foreach ($path in $directories) {
+    Write-Output $path
+}
 
-    # Add each path to $PATH
-    $currentPath += ";$($pathsToAdd -join ';')"
+# Prompt user to add paths
+$declineAll = $false
+foreach ($path in $directories) {
+    if (-not $declineAll) {
+        if (-not (Test-Path $path)) {
+            Write-Host "Path '$path' does not exist. Skipped."
+            Continue
+        }
 
-    # Update the system $PATH
-    [Environment]::SetEnvironmentVariable("PATH", $currentPath, "Machine")
-
-    # Output updated $PATH for verification
-    Write-Host "Updated PATH: $currentPath"
-
-    # Prompt to restart terminal
-    if (-not $NoPrompt -and (Read-Host "You will need to start a new terminal session. Exit now? Y/N") -eq 'Y') {
-        Write-Host "Exiting the terminal in 3 seconds..."
-        Start-Sleep -Seconds 3
-        Stop-Process -Id $PID -Force
+        $response = Read-Host @"
+Do you want to add '$path' to PATH? 
+[Y]es: Add this path to the system PATH
+[N]o: Skip this path
+[A]ll: Add all paths to the system PATH without further prompts
+[D]ecline all: Skip all paths and exit
+"@
+        switch ($response) {
+            "Y" { [System.Environment]::SetEnvironmentVariable("Path", "$($systemPath);$path", "Machine") }
+            "N" { Write-Host "Skipped '$path'." }
+            "A" { [System.Environment]::SetEnvironmentVariable("Path", "$($systemPath);$($directories -join ';')", "Machine"); $declineAll = $true; break }
+            "D" { $declineAll = $true; break }  # Decline all
+            Default { Write-Host "Invalid choice. Skipped '$path'." }
+        }
+    } else {
+        Write-Host "Skipped '$path' (Declined all)."
     }
 }
-catch {
-    Write-Error "An error occurred: $_"
-    exit 1
-}
+
+# Confirm completion
+Write-Host "Path modification complete."
