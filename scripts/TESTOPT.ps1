@@ -27,7 +27,9 @@ function ExecuteCommand($command) {
 
 function Log($message) {
     if (!$NoLog) {
-        $logPath = ".\logs\Optimize-PS1.log"
+        $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+        $logPath = Join-Path -Path $scriptDirectory -ChildPath "logs\Optimize-PS1.log"
+        
         if (!(Test-Path $logPath)) {
             New-Item -ItemType File -Path $logPath -Force | Out-Null
         }
