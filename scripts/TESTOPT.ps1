@@ -23,7 +23,13 @@ function ExecuteCommand($command) {
         throw "Error executing command: $command"
     }
 
+    Log $output
     return $output
+}
+
+function Get-CurrentDirectorySize {
+    $initialDirectorySizeBytes = (Get-ChildItem -Path . -Recurse -Force | Measure-Object -Property Length -Sum).Sum
+    return $initialDirectorySizeBytes
 }
 
 function Log($message) {
@@ -55,22 +61,25 @@ function Write-Divider {
 ###############################################
 
 function ArchiveMode($path) {
+    $initialDirectorySizeBytes = Get-CurrentDirectorySize
+    $totalFileOperations = 0
+
     Write-Host ">> Entering Archive Mode..."; Log "ARCHIVE MODE"
     Write-Divider
     $archives = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.7z|\.gz|\.rar' }
     
     if ($archives.Count -eq 0) {
-        Write-Host "No archive files found!"; Log "Archive Mode skipped: No archive files found!"
+        Write-Host ">> No archive files found!"; Log "Archive Mode skipped: No archive files found!"
         return
     }
 
     foreach ($archive in $archives) {
-        Write-Host "Hashing archive: $($archive.FullName)"; Log "Hashing archive: $($archive.FullName)"
-        $hashCommand = "7z h `"$($archive.FullName)`""
-        ExecuteCommand $hashCommand
+        Write-Host ">> Hashing archive: $archive"; Log "Hashing archive: $archive"
+        $fileHash = Get-FileHash - Path $archive.FullName -Algorithm SHA256
+
         Write-Divider
-        Write-Host "Extracting archive: $($archive.FullName)"; Log "Extracting archive: $($archive.FullName)"
-        $extractCommand = "7z x '.\$($archive.Name)' -y"
+        Write-Host ">> Extracting archive: $($archive.FullName)"; Log "Extracting archive: $($archive.FullName)"
+        $extractCommand = "7z x `".\$($archive.Name)`" -y"
         ExecuteCommand $extractCommand
         Write-Divider
 
@@ -83,13 +92,27 @@ function ArchiveMode($path) {
 
         if ($DeleteArchive) {
             # Wait for the completion of the extraction before deleting the source archive
-            Write-Host "Extraction completed. Deleting source archive: $($archive.FullName)"; Log "Deleting source archive: $($archive.FullName)"
+            Write-Host ">> Extraction completed. Deleting source archive: $($archive.FullName)"; Log "Deleting source archive: $($archive.FullName)"
             Start-Sleep -Seconds 1
-            Log "Deleting source archive: $($archive.FullName)"
-            Remove-Item -LiteralPath $archive.FullName
+            try {
+                Remove-Item -LiteralPath $archive.FullName  
+            }
+            catch {
+                Log "Error: $_"
+                Log "StackTrace: $($_.StackTrace)"        
+                throw "Error executing command: $command"
+            }
+
             Write-Divider
         }
     }
+
+    $result = [PSCustomObject]@{
+        TotalFileOperations = $totalFileOperations
+        InitialDirectorySizeBytes = $initialDirectorySizeBytes
+    }    
+
+    return $result
 }
 
 function ImageMode($path) {
@@ -101,9 +124,9 @@ function ImageMode($path) {
         $chdFilePath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
         $resolvedPath = (Resolve-Path -Path $chdFilePath -ErrorAction SilentlyContinue)?.Path
 
-        if ($resolvedPath -eq $null) {
+        if ($null -eq $resolvedPath) {
             $resolvedPath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
-        }
+        }        
 
         $forceOverwrite = $Force -or $F
         if (!$forceOverwrite -and !$NoPrompt -and (Test-Path $resolvedPath)) {
@@ -121,7 +144,7 @@ function ImageMode($path) {
             }
         }
 
-        $convertCommand = "chdman createcd -i '$($image.FullName)' -o '$resolvedPath'"
+        $convertCommand = "chdman createcd -i `"$($image.FullName)`" -o `"$resolvedPath`""
         
         # Add --force flag only if user confirms or $NoPrompt is specified
         if ($forceOverwrite -or $NoPrompt -or ($overwrite -eq 'Y')) {
@@ -154,7 +177,13 @@ function ImageMode($path) {
     }
 }
 
-
+function Summarize($initialDirectorySizeBytes, $finalDirectorySizeBytes, $totalFileOperations) {
+    Write-Host ">> Entering Summarize Mode..."; Log "Entering Summarize Mode..."
+    Write-Divider
+    Write-Host "Initial Directory Size: $initialDirectorySizeBytes bytes"; Log "Initial Directory Size: $initialDirectorySizeBytes bytes"
+    Write-Host "Final Directory Size: $finalDirectorySizeBytes bytes"; Log "Final Directory Size: $finalDirectorySizeBytes bytes"
+    Write-Divider
+}
 
 ###############################################
 # Main
@@ -165,7 +194,7 @@ try {
     if ($SkipArchive) {
         ImageMode(Get-Location)
     } else {
-        ArchiveMode(Get-Location)
+        $initialDirectorySizeBytes = ArchiveMode(Get-Location)
         ImageMode(Get-Location)
     }
 
