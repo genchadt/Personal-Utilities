@@ -226,28 +226,16 @@ function Expand-Archives() {
         $fileHash = Get-FileHash -Path $archive.FullName -Algorithm SHA256; $totalFileOperations += 1
         Write-Console "Archive's SHA-256 file hash: $($fileHash.Hash)"
         Write-Divider
-        Write-Console "Checking for duplicates and prompting user..."
     
-        # Check for duplicates and prompt user if necessary
-        $archiveContents = Get-7Zip -ArchiveFileName $archive.FullName
-        $promptUser = $archiveContents | ForEach-Object {
-            $destinationItem = Join-Path $PWD $_.Name
-            if (Test-Path $destinationItem) {
-                $response = Read-Console "File '$($_.Name)' already exists. Do you want to overwrite?"
-                $response -eq 'Y'
-            } else {
-                $false
-            }
-        }
+        # Use 7Zip4Powershell to extract the archive
+        $extractDestination = Join-Path $archive.Directory.FullName $archive.BaseName
     
-        if ($promptUser -or $Force) {
-            # User wants to overwrite or -Force is specified
-            Write-Console "Overwriting existing files..."
-            
-            # Use 7Zip4Powershell to extract the archive
-            $extractDestination = Join-Path $archive.Directory.FullName $archive.BaseName
-            Expand-7Zip -ArchivePath $archive.FullName -OutputPath $extractDestination -Force:$Force
+        # Prompt user with options to accept/decline for individual archives or all
+        $response = Read-Host -Prompt "Extract archive: $($archive.FullName)? (Y)es / (A)ccept All / (N)o / (D)ecline All"
     
+        if ($response -eq 'Y' -or $response -eq 'A' -or $Force) {
+            Write-Console "Extracting archive: $($archive.FullName)"
+            Expand-7Zip -ArchiveFileName $archive.FullName -TargetPath $extractDestination
             Write-Divider
     
             # Move all .bin/.cue/.iso files to the parent folder
@@ -270,18 +258,18 @@ function Expand-Archives() {
     
                 Write-Divider
             }
+        } elseif ($response -eq 'N') {
+            Write-Console "Declining all. Skipping extraction for archive: $($archive.FullName)"
+            Write-Divider
+        } elseif ($response -eq 'D') {
+            Write-Console "Declining all. Skipping extraction for archive: $($archive.FullName)"
+            Write-Divider
         } else {
-            Write-Console "Skipping extraction. No overwrite requested."
+            Write-Console "Invalid response. Skipping extraction for archive: $($archive.FullName)"
             Write-Divider
         }
     }
     
-
-    $result = [PSCustomObject]@{
-        TotalFileOperations = $totalFileOperations
-        InitialDirectorySizeBytes = $initialDirectorySizeBytes
-    }    
-
     return $result
 }
 
