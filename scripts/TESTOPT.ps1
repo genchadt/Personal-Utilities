@@ -4,7 +4,6 @@ param(
     [Alias("F")]
     [switch]$Force,
     [switch]$NoLog,
-    [switch]$NoPrompt,
     [switch]$SkipArchive
 )
 
@@ -129,7 +128,7 @@ function ImageMode($path) {
         }        
 
         $forceOverwrite = $Force -or $F
-        if (!$forceOverwrite -and !$NoPrompt -and (Test-Path $resolvedPath)) {
+        if (!$forceOverwrite -and (Test-Path $resolvedPath)) {
             $relativePath = (Resolve-Path -Path $chdFilePath -Relative).Path
             $overwrite = $null
             while ($overwrite -notin @('Y', 'N')) {
@@ -146,8 +145,8 @@ function ImageMode($path) {
 
         $convertCommand = "chdman createcd -i `"$($image.FullName)`" -o `"$resolvedPath`""
         
-        # Add --force flag only if user confirms or $NoPrompt is specified
-        if ($forceOverwrite -or $NoPrompt -or ($overwrite -eq 'Y')) {
+        # Add --force flag only if user confirms or $Force is specified
+        if ($forceOverwrite -or $Force -or ($overwrite -eq 'Y')) {
             $convertCommand += " --force"
         }
 
