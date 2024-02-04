@@ -217,7 +217,7 @@ function Expand-Archives() {
 
     Write-Console "Entering Archive Mode...";
     Write-Divider
-    $archives = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.7z|\.gz|\.rar' }
+    $archives = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.7z|\.gz|\.rar|\.zip' }
     
     if ($archives.Count -eq 0) {
         Write-Console "Archive Mode skipped: No archive files found!"
@@ -233,12 +233,15 @@ function Expand-Archives() {
         Write-Divider
     
         # Move all .bin/.cue/.iso files to the parent folder
-        $imageFiles = Get-ChildItem -Path $extractDestination -Filter *.* -Include *.bin, *.cue, *.iso -Recurse
+        $imageFiles = Get-ChildItem -Path $extractDestination -Filter *.* -Include *.bin, *.cue, .gdi, *.iso, *.raw -Recurse
         foreach ($imageFile in $imageFiles) {
             $destinationPath = Join-Path $PWD $imageFile.Name
             Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force
             $FileOperations.TotalFileOperations++
         }
+
+        Remove-Item -Path $extractDestination -Force -Recurse
+        $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
     
         if ($DeleteArchive) {
             # Wait for the completion of the extraction before deleting the source archive
@@ -265,7 +268,7 @@ function Compress-Images() {
 
     Write-Console "Entering Image Mode..."
     Write-Divider
-    $images = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.cue|\.iso' }
+    $images = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.cue|\.gdi|\.iso|\.raw' }
 
     foreach ($image in $images) {
         $chdFilePath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
@@ -309,7 +312,7 @@ function Compress-Images() {
         
             # Generate regex pattern for matching any .bin, .cue, or .iso files with the same base name
             $baseNameRegex = [regex]::Escape($image.BaseName)
-            $pattern = "$baseNameRegex.*\.(bin|cue|iso)"
+            $pattern = "$baseNameRegex.*\.(bin|cue|gdi|iso|raw)"
         
             # Delete corresponding .bin, .cue, and .iso files
             $matchingFiles = Get-ChildItem -Path $image.Directory.FullName -Filter "*.*" | Where-Object { $_.Name -match $pattern }
@@ -343,9 +346,8 @@ function Summarize() {
 ###############################################
 
 try {
-    $CWDSizeBytes_Before = Get-CurrentDirectorySize
-    $CWDSizeBytes_Current = 0
-    $TotalFileOperations - 0
+    $CWDSizeBytes_Before    = Get-CurrentDirectorySize
+    $CWDSizeBytes_Current   = 0
 
     Write-Console "Optimize-PSX Script $($ScriptAttributes.Version)" -NoLog
     Write-Console "Written in PowerShell 7.4.1" -NoLog
