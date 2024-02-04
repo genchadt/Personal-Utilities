@@ -1,6 +1,7 @@
 param(
     [switch]$DeleteArchive,
     [switch]$DeleteImage,
+    [Alias("F")]
     [switch]$Force,
     [switch]$NoLog,
     [switch]$NoPrompt,
@@ -26,19 +27,23 @@ function ExecuteCommand($command) {
 }
 
 function Log($message) {
-    if (!$NoLog) {
-        $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-        $logPath = Join-Path -Path $scriptDirectory -ChildPath "logs\Optimize-PS1.log"
-        
-        if (!(Test-Path $logPath)) {
-            New-Item -ItemType File -Path $logPath -Force | Out-Null
-        }
-        
-        $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
-        $logEntry = "[$timestamp] $message"
-        
-        Add-Content -Path $logPath -Value $logEntry
+    $scriptDirectory = $PSScriptRoot
+
+    if ($scriptDirectory -eq $null) {
+        # If $PSScriptRoot is null, use the current location as a fallback
+        $scriptDirectory = Get-Location
     }
+
+    $logPath = Join-Path -Path $scriptDirectory -ChildPath "logs\Optimize-PSX.log"
+
+    if (!(Test-Path $logPath)) {
+        New-Item -ItemType File -Path $logPath -Force | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
+    $logEntry = "[$timestamp] $message"
+
+    Add-Content -Path $logPath -Value $logEntry
 }
 
 function Write-Divider {
@@ -65,7 +70,7 @@ function ArchiveMode($path) {
         ExecuteCommand $hashCommand
         Write-Divider
         Write-Host "Extracting archive: $($archive.FullName)"; Log "Extracting archive: $($archive.FullName)"
-        $extractCommand = "7z e '.\$($archive.Name)' -y"
+        $extractCommand = "7z x '.\$($archive.Name)' -y"
         ExecuteCommand $extractCommand
         Write-Divider
 

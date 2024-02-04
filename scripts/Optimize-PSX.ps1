@@ -144,5 +144,6 @@ try {
 
     Summarize
 } catch {
-    Write-Host "Error: $_"
+    Write-Host "Error: $_"; Log "Error: $_"
+    throw
 }
