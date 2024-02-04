@@ -226,32 +226,56 @@ function Expand-Archives() {
         $fileHash = Get-FileHash -Path $archive.FullName -Algorithm SHA256; $totalFileOperations += 1
         Write-Console "Archive's SHA-256 file hash: $($fileHash.Hash)"
         Write-Divider
-        Write-Console "Extracting archive: $($archive.FullName)"
-        $extractCommand = "7z x `".\$($archive.Name)`""; if ($Force) { $extractCommand += " -y" }
-        Invoke-Command $extractCommand; $totalFileOperations +=1
-        Write-Divider
-
-        # Move all .bin/.cue/.iso files to the parent folder
-        $imageFiles = Get-ChildItem -Path $archive.Directory.FullName -Filter *.* -Include *.bin, *.cue, *.iso -Recurse
-        foreach ($imageFile in $imageFiles) {
-            $destinationPath = Join-Path $PWD $imageFile.Name
-            Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force; $totalFileOperations += 1
+        Write-Console "Checking for duplicates and prompting user..."
+    
+        # Check for duplicates and prompt user if necessary
+        $archiveContents = Get-7Zip -ArchivePath $archive.FullName
+        $promptUser = $archiveContents | ForEach-Object {
+            $destinationItem = Join-Path $PWD $_.Name
+            if (Test-Path $destinationItem) {
+                $response = Read-Host "File '$($_.Name)' already exists. Do you want to overwrite? (Y/N)"
+                $response -eq 'Y'
+            } else {
+                $false
+            }
         }
-
-        if ($DeleteArchive) {
-            # Wait for the completion of the extraction before deleting the source archive
-            Write-Console "Extraction completed. Deleting source archive: $($archive.FullName)"
-            Start-Sleep -Seconds 1
-            try {
-                Remove-Item -LiteralPath $archive.FullName; $totalFileOperations += 1
+    
+        if ($promptUser -or $Force) {
+            # User wants to overwrite or -Force is specified
+            Write-Console "Overwriting existing files..."
+            
+            # Use 7Zip4Powershell to extract the archive
+            $extractDestination = Join-Path $archive.Directory.FullName $archive.BaseName
+            Expand-7Zip -ArchivePath $archive.FullName -OutputPath $extractDestination -Force:$Force
+    
+            Write-Divider
+    
+            # Move all .bin/.cue/.iso files to the parent folder
+            $imageFiles = Get-ChildItem -Path $extractDestination -Filter *.* -Include *.bin, *.cue, *.iso -Recurse
+            foreach ($imageFile in $imageFiles) {
+                $destinationPath = Join-Path $PWD $imageFile.Name
+                Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force; $totalFileOperations += 1
             }
-            catch {
-                ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
+    
+            if ($DeleteArchive) {
+                # Wait for the completion of the extraction before deleting the source archive
+                Write-Console "Extraction completed. Deleting source archive: $($archive.FullName)"
+                Start-Sleep -Seconds 1
+                try {
+                    Remove-Item -LiteralPath $archive.FullName; $totalFileOperations += 1
+                }
+                catch {
+                    ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
+                }
+    
+                Write-Divider
             }
-
+        } else {
+            Write-Console "Skipping extraction. No overwrite requested."
             Write-Divider
         }
     }
+    
 
     $result = [PSCustomObject]@{
         TotalFileOperations = $totalFileOperations
