@@ -202,6 +202,13 @@ function Expand-Archives() {
         [string]$Path
     )
 
+    try {
+        if (!(Get-Module 7Zip4Powershell -ListAvailable)) { Install-Module 7Zip4Powershell }
+
+        Import-Module 7Zip4Powershell
+    }
+    catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+
     $initialDirectorySizeBytes = Get-CurrentDirectorySize
     $totalFileOperations = 0
 
@@ -217,7 +224,7 @@ function Expand-Archives() {
     foreach ($archive in $archives) {
         Write-Console "Hashing archive: $archive"
         $fileHash = Get-FileHash -Path $archive.FullName -Algorithm SHA256; $totalFileOperations += 1
-        Write-Console "File hash: $($fileHash.Hash)"
+        Write-Console "Archive's SHA-256 file hash: $($fileHash.Hash)"
         Write-Divider
         Write-Console "Extracting archive: $($archive.FullName)"
         $extractCommand = "7z x `".\$($archive.Name)`""; if ($Force) { $extractCommand += " -y" }
