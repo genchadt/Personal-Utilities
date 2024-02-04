@@ -229,11 +229,11 @@ function Expand-Archives() {
         Write-Console "Checking for duplicates and prompting user..."
     
         # Check for duplicates and prompt user if necessary
-        $archiveContents = Get-7Zip -ArchivePath $archive.FullName
+        $archiveContents = Get-7Zip -ArchiveFileName $archive.FullName
         $promptUser = $archiveContents | ForEach-Object {
             $destinationItem = Join-Path $PWD $_.Name
             if (Test-Path $destinationItem) {
-                $response = Read-Host "File '$($_.Name)' already exists. Do you want to overwrite? (Y/N)"
+                $response = Read-Console "File '$($_.Name)' already exists. Do you want to overwrite?"
                 $response -eq 'Y'
             } else {
                 $false
