@@ -169,14 +169,13 @@ function Write-Console() {
 
 function Write-Divider {
     param (
-        [switch]$Strong
+        [switch]$Strong,
+        [string]$Char = '-'
     )
 
-    $char = '-'
-
     if (!$SilentMode) { 
-        if($Strong) { $char = '=' }
-        Write-Console ($char * 15) -NoLog 
+        if($Strong) { $Char = '=' }
+        Write-Console ($Char * 15) -NoLog 
     }
 }
 
@@ -262,19 +261,28 @@ function Expand-Archives() {
         Remove-Item -Path $extractDestination -Force -Recurse
         $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
     
-        if ($DeleteArchive) {
-            # Wait for the completion of the extraction before deleting the source archive
-            Write-Console "Deleting source archive: $($archive.FullName)"
-            try {
-                Remove-Item -LiteralPath $archive.FullName; $totalFileOperations += 1
+        if ($DeleteImage) {
+            # Wait for the completion of the conversion before deleting the source image
+            Write-Console "Conversion completed. Deleting source image: $($image.FullName)"           
+        
+            $escapedBaseName = $image.BaseName -replace '\[.*\]', '.*'
+            $pattern = "^$escapedBaseName.*\.(bin|cue|gdi|iso|raw)$"
+        
+            Write-Console "Constructed pattern: $pattern"
+        
+            # Delete corresponding .bin, .cue, and .iso files
+            $matchingFiles = Get-ChildItem -Path $image.Directory.FullName -Filter "*.*" | Where-Object { $_.Name -match $pattern }
+        
+            foreach ($matchingFile in $matchingFiles) {
+                Write-Console "Deleting corresponding file: $($matchingFile.FullName)"
+                Remove-Item -LiteralPath $matchingFile.FullName -Force
                 $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
             }
-            catch {
-                ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
-            }
-    
+        
+            Write-Console "Source image and corresponding files deleted."
             Write-Divider
-        }
+        }        
+        
     }
     
     return $result
@@ -330,18 +338,22 @@ function Compress-Images() {
             # Wait for the completion of the conversion before deleting the source image
             Write-Console "Conversion completed. Deleting source image: $($image.FullName)"           
             
-            $baseName = $image.BaseName -replace '[\W_]', '_'
-            $matchingFiles = Get-ChildItem -Path $image.Directory.FullName -Filter "$baseName.*" -File
-        
+            $baseName = $image.BaseName -replace '[^\w\-\. ]', '*'
+            Write-Console "Sanitized base name: $baseName"
+            
+            # Delete corresponding files excluding .chd
+            $matchingFiles = Get-ChildItem -LiteralPath $image.Directory.FullName -File -Recurse -Exclude "*.chd" |
+                             Where-Object { $_.BaseName -like "$($baseName)*" -and $_.Extension -notin ".chd" }
+            
             foreach ($matchingFile in $matchingFiles) {
                 Write-Console "Deleting corresponding file: $($matchingFile.FullName)"
                 Remove-Item -LiteralPath $matchingFile.FullName -Force
                 $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
             }
-        
+            
             Write-Console "Source image and corresponding files deleted."
             Write-Divider
-        }
+        }        
         
     }
 }
@@ -397,6 +409,16 @@ try {
     Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
     Write-Console "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -NoLog
     Write-Divider -Strong
+    if (!$SilentMode) {
+        Write-Console "Warning: `$DeleteArchive and/or `$DeleteImage are enabled. These options permanently delete ALL source files in their respective directories."
+        Write-Console "Are you sure you want to continue? (Y/N)"
+        $response = Read-Host
+        if ($response -ne "Y") {
+            Write-Console "Exiting..."
+            exit
+        }
+    }
+
     if (!$SkipArchive) {
         Expand-Archives(Get-Location)
         if ($DeleteArchive) {
