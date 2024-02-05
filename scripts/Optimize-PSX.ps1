@@ -80,10 +80,12 @@ param (
 
 $ScriptAttributes = @{
     LogFile = "logs\Optimize-PSX.log"
+    StartTime = $null
     Version = "1.1"
 }
 
 $FileOperations = @{
+    CHDFileList = @()
     InitialDirectorySizeBytes = 0
     TotalFileConversions = 0
     TotalFileDeletions = 0
@@ -121,7 +123,7 @@ function Invoke-Command() {
         [string]$Command
     )
 
-    Write-Console "Executing: $Command"
+    Write-Console "Executing: $Command`n"
 
     try {
         $output = Invoke-Expression $Command -ErrorAction Stop
@@ -166,7 +168,16 @@ function Write-Console() {
 }
 
 function Write-Divider {
-    if (!$SilentMode) { Write-Console ('-' * 15) -NoLog }
+    param (
+        [switch]$Strong
+    )
+
+    $char = '-'
+
+    if (!$SilentMode) { 
+        if($Strong) { $char = '=' }
+        Write-Console ($char * 15) -NoLog 
+    }
 }
 
 function Write-Log() {
@@ -189,13 +200,9 @@ function Write-Log() {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logEntry = "[$timestamp] $Message"
 
-    # Read existing content
     $existingContent = Get-Content -Path $logPath -Raw
-
-    # Prepend the new log entry
     $updatedContent = "$logEntry`r`n$existingContent"
 
-    # Write the updated content back to the file
     Set-Content -Path $logPath -Value $updatedContent
 }
 
@@ -216,24 +223,36 @@ function Expand-Archives() {
     catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 
     Write-Console "Entering Archive Mode...";
-    Write-Divider
+    Write-Divider -Strong
     $archives = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.7z|\.gz|\.rar|\.zip' }
     
     if ($archives.Count -eq 0) {
         Write-Console "Archive Mode skipped: No archive files found!"
+        Write-Divider
         return
     }
 
     foreach ($archive in $archives) {
         $extractDestination = Join-Path $archive.Directory.FullName $archive.BaseName
-    
-        Write-Console "Extracting archive: $($archive.FullName)"
+
+        try {
+            $hashValue = Get-FileHash -Algorithm SHA256 -LiteralPath $archive.FullName | Select-Object -ExpandProperty Hash
+
+            Write-Console "Hashing archive: `"$($archive.FullName)`""
+            Write-Console "SHA-256 hash: $hashValue"
+            Write-Divider
+        }
+        catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+
+        
+        Write-Console "Extracting archive: `"$($archive.FullName)`""
         Expand-7Zip -ArchiveFileName $archive.FullName -TargetPath $extractDestination
         $FileOperations.TotalFileExtractions++; $FileOperations.TotalFileOperations++
-        Write-Divider
+        Write-Console "Extraction complete."
+        Write-Divider -Strong
     
         # Move all .bin/.cue/.iso files to the parent folder
-        $imageFiles = Get-ChildItem -Path $extractDestination -Filter *.* -Include *.bin, *.cue, .gdi, *.iso, *.raw -Recurse
+        $imageFiles = Get-ChildItem -Path $extractDestination -Filter *.* -Include *.bin, *.cue, *.gdi, *.iso, *.raw -Recurse
         foreach ($imageFile in $imageFiles) {
             $destinationPath = Join-Path $PWD $imageFile.Name
             Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force
@@ -245,7 +264,7 @@ function Expand-Archives() {
     
         if ($DeleteArchive) {
             # Wait for the completion of the extraction before deleting the source archive
-            Write-Console "Extraction completed. Deleting source archive: $($archive.FullName)"
+            Write-Console "Deleting source archive: $($archive.FullName)"
             try {
                 Remove-Item -LiteralPath $archive.FullName; $totalFileOperations += 1
                 $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
@@ -267,25 +286,24 @@ function Compress-Images() {
     )
 
     Write-Console "Entering Image Mode..."
-    Write-Divider
-    $images = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.cue|\.gdi|\.iso|\.raw' }
+    Write-Divider -Strong
+    $images = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.cue|\.gdi|\.iso' }
 
     foreach ($image in $images) {
         $chdFilePath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
-        $resolvedPath = (Resolve-Path -Path $chdFilePath -ErrorAction SilentlyContinue)?.Path
+        $resolvedPath = (Resolve-Path -Path `"$chdFilePath`" -ErrorAction SilentlyContinue)?.Path
 
         if ($null -eq $resolvedPath) {
             $resolvedPath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
         }        
 
         $forceOverwrite = $Force -or $F
-        if (!$forceOverwrite -and (Test-Path $resolvedPath)) {
+        if (!$forceOverwrite -and (Test-Path `"$resolvedPath`")) {
             $relativePath = (Resolve-Path -Path $chdFilePath -Relative).Path
             $overwrite = $null
             while ($overwrite -notin @('Y', 'N')) {
                 $overwrite = Read-Console "File .\$($relativePath) already exists. Do you want to overwrite?"
                 $overwrite = $overwrite.ToUpper()
-                $FileOperations.TotalFileConversions++; $FileOperations.TotalFileOperations++
             }
 
             if ($overwrite -eq 'N') {
@@ -297,7 +315,6 @@ function Compress-Images() {
 
         $convertCommand = "chdman createcd -i `"$($image.FullName)`" -o `"$resolvedPath`""
         
-        # Add --force flag only if user confirms or $Force is specified
         if ($forceOverwrite -or $Force -or ($overwrite -eq 'Y')) {
             $convertCommand += " --force"
         }
@@ -306,39 +323,64 @@ function Compress-Images() {
         Invoke-Command $convertCommand
         Write-Divider
 
+        $FileOperations.CHDFileList += $image.Name
+        $FileOperations.TotalFileConversions++; $FileOperations.TotalFileOperations++
+
         if ($DeleteImage) {
             # Wait for the completion of the conversion before deleting the source image
             Write-Console "Conversion completed. Deleting source image: $($image.FullName)"           
+            
+            $baseName = $image.BaseName -replace '[\W_]', '_'
+            $matchingFiles = Get-ChildItem -Path $image.Directory.FullName -Filter "$baseName.*" -File
         
-            # Generate regex pattern for matching any .bin, .cue, or .iso files with the same base name
-            $baseNameRegex = [regex]::Escape($image.BaseName)
-            $pattern = "$baseNameRegex.*\.(bin|cue|gdi|iso|raw)"
-        
-            # Delete corresponding .bin, .cue, and .iso files
-            $matchingFiles = Get-ChildItem -Path $image.Directory.FullName -Filter "*.*" | Where-Object { $_.Name -match $pattern }
             foreach ($matchingFile in $matchingFiles) {
                 Write-Console "Deleting corresponding file: $($matchingFile.FullName)"
                 Remove-Item -LiteralPath $matchingFile.FullName -Force
+                $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
             }
         
             Write-Console "Source image and corresponding files deleted."
             Write-Divider
-        }             
+        }
+        
     }
 }
 
 function Summarize() {
     param (
-        [int]$InitialDirectorySizeBytes,
-        [int]$FinalDirectorySizeBytes,
-        [int]$TotalFileOperations
+        [long]$InitialDirectorySizeBytes,
+        [long]$FinalDirectorySizeBytes
     )
 
-    Write-Console "Entering Summarize Mode..."
+    $InitialDirectorySizeMB = [math]::Round($InitialDirectorySizeBytes / 1MB, 2)
+    $FinalDirectorySizeMB = [math]::Round($FinalDirectorySizeBytes / 1MB, 2)
+
+    $SavedOrLost = if ($FinalDirectorySizeBytes -lt $InitialDirectorySizeBytes) { "Saved" } else { "Lost" }
+    $SpaceDifference = [math]::Round([math]::Abs($FinalDirectorySizeBytes - $InitialDirectorySizeBytes) / 1MB, 2)
+
+    $StartTime = $ScriptAttributes.StartTime
+    $EndTime = Get-Date
+    $EstimatedRuntime = $EndTime - $StartTime
+
+    Write-Console "Summary"
+    Write-Divider -Strong
+    Write-Console "Initial Directory Size: $InitialDirectorySizeBytes bytes ($InitialDirectorySizeMB MB)"
+    Write-Console "Final Directory Size: $FinalDirectorySizeBytes bytes ($FinalDirectorySizeMB MB)"
     Write-Divider
-    Write-Console "Initial Directory Size: $InitialDirectorySizeBytes bytes"
-    Write-Console "Final Directory Size: $FinalDirectorySizeBytes bytes"
+    Write-Console "Total Difference: $SpaceDifference MB $SavedOrLost"
+    Write-Divider -Strong
+    Write-Console "Total Archives Extracted: $($FileOperations.TotalFileExtractions)"
+    Write-Console "Total Images Converted: $($FileOperations.TotalFileConversions)"
+    Write-Console "Total Files Deleted: $($FileOperations.TotalFileDeletions)"
     Write-Divider
+    Write-Console "Total Operations: $($FileOperations.TotalFileOperations)"
+    Write-Divider -Strong
+    Write-Console "CHD Files Created Successfully:"
+    foreach ($file in $FileOperations.CHDFileList) {
+        Write-Console " + $file"
+    }
+    Write-Console "Operations completed in $($EstimatedRuntime.Minutes)m $($EstimatedRuntime.Seconds)s $($EstimatedRuntime.Milliseconds)ms"
+    Write-Divider -Strong
 }
 
 ###############################################
@@ -346,6 +388,7 @@ function Summarize() {
 ###############################################
 
 try {
+    $ScriptAttributes.StartTime = Get-Date
     $CWDSizeBytes_Before    = Get-CurrentDirectorySize
     $CWDSizeBytes_Current   = 0
 
@@ -353,6 +396,7 @@ try {
     Write-Console "Written in PowerShell 7.4.1" -NoLog
     Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
     Write-Console "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -NoLog
+    Write-Divider -Strong
     if (!$SkipArchive) {
         Expand-Archives(Get-Location)
         if ($DeleteArchive) {
@@ -364,5 +408,5 @@ try {
 
     $CWDSizeBytes_Current = Get-CurrentDirectorySize
 
-    Summarize $CWDSizeBytes_Before $CWDSizeBytes_Current $TotalFileOperations
+    Summarize $CWDSizeBytes_Before $CWDSizeBytes_Current
 } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
