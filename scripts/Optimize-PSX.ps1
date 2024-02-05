@@ -409,7 +409,7 @@ try {
     Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
     Write-Console "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -NoLog
     Write-Divider -Strong
-    if (!$SilentMode) {
+    if (!$Force -and ($DeleteArchive -or $DeleteImage)) {
         Write-Console "Warning: `$DeleteArchive and/or `$DeleteImage are enabled. These options permanently delete ALL source files in their respective directories."
         Write-Console "Are you sure you want to continue? (Y/N)"
         $response = Read-Host
