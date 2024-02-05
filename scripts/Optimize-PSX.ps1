@@ -391,6 +391,7 @@ function Summarize() {
     foreach ($file in $FileOperations.CHDFileList) {
         Write-Console " + $file"
     }
+    Write-Divider
     Write-Console "Operations completed in $($EstimatedRuntime.Minutes)m $($EstimatedRuntime.Seconds)s $($EstimatedRuntime.Milliseconds)ms"
     Write-Divider -Strong
 }
