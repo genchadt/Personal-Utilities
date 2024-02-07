@@ -55,7 +55,7 @@
     Ensure required programs are installed and added to PATH.
     Required programs: 7-zip, chdman
 
-    Script Version: 1.1
+    Script Version: 1.1.2
     Author: Chad
     Creation Date: 2023-12-07 03:30:00 GMT
     Last Updated: 2024-02-04 03:30:00 GMT
@@ -88,7 +88,7 @@ param (
 $ScriptAttributes = @{
     LogFile = "logs\Optimize-PSX.log"
     StartTime = $null
-    Version = "1.1"
+    Version = "1.1.2"
 }
 
 $FileOperations = @{
