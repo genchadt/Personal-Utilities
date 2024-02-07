@@ -41,23 +41,16 @@ function Write-Log() {
         [string]$Message
     )
 
-    $scriptDirectory = $PSScriptRoot
+    $logFileName = "{0}.log" -f (Split-Path $MyInvocation.ScriptName -Leaf -Replace '\.ps1$')
+    $logPath = Join-Path -Path (Split-Path $MyInvocation.ScriptName -Parent) -ChildPath "logs\$logFileName"
 
-    if ($null -eq $scriptDirectory) {
-        $scriptDirectory = Get-Location
-    }
-
-    $logPath = Join-Path -Path $scriptDirectory -ChildPath "logs\Optimize-PSX.log"
-
-    if (!(Test-Path $logPath)) {
-        New-Item -ItemType File -Path $logPath -Force | Out-Null
+    if (-not (Test-Path $logPath)) {
+        New-Item -ItemType File -Path $logPath -Force > $null
     }
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logEntry = "[$timestamp] $Message"
 
-    $existingContent = Get-Content -Path $logPath -Raw
-    $updatedContent = "$logEntry`r`n$existingContent"
-
-    Set-Content -Path $logPath -Value $updatedContent
+    $logContent = Get-Content -Path $logPath -Raw
+    Set-Content -Path $logPath -Value "$logEntry`r`n$logContent"
 }
