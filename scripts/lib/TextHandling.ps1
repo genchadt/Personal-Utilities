@@ -32,7 +32,7 @@ function Write-Divider {
 
     if (!$SilentMode) { 
         if($Strong) { $Char = '=' }
-        Write-Console ($Char * 15) -NoLog 
+        Write-Host ($Char * 15)
     }
 }
 
@@ -41,16 +41,15 @@ function Write-Log() {
         [string]$Message
     )
 
-    $logFileName = "{0}.log" -f (Split-Path $MyInvocation.ScriptName -Leaf -Replace '\.ps1$')
-    $logPath = Join-Path -Path (Split-Path $MyInvocation.ScriptName -Parent) -ChildPath "logs\$logFileName"
+    $logFileName = "{0}.log" -f ($MyInvocation.MyCommand.Name -replace '\.ps1$', '')
+    $logPath = Join-Path -Path $PSScriptRoot -ChildPath "logs\$logFileName"
 
     if (-not (Test-Path $logPath)) {
-        New-Item -ItemType File -Path $logPath -Force > $null
+        New-Item -ItemType File -Path $logPath -Force | Out-Null
     }
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logEntry = "[$timestamp] $Message"
 
-    $logContent = Get-Content -Path $logPath -Raw
-    Set-Content -Path $logPath -Value "$logEntry`r`n$logContent"
+    Add-Content -Path $logPath -Value $logEntry
 }

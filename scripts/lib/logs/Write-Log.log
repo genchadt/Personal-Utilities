@@ -1,0 +1,126 @@
+[2024-02-06 22:59:21] Error: Requested value 'System.Collections.Hashtable' was not found.
+[2024-02-06 22:59:21] StackTrace: 
+
+[2024-02-06 22:59:21] Exception Source: C:\utils\scripts\Set-Visibility.ps1
+[2024-02-06 22:59:21] Exception Line: 42
+[2024-02-06 22:59:21] Exception Offset: 17
+[2024-02-06 23:03:29] Error: Requested value 'System.Collections.Hashtable' was not found.
+[2024-02-06 23:03:29] StackTrace: 
+[2024-02-06 23:03:29] Exception Source: C:\utils\scripts\Set-Visibility.ps1
+[2024-02-06 23:03:29] Exception Line: 42
+[2024-02-06 23:03:29] Exception Offset: 17
+[2024-02-06 23:07:27] Error: Requested value 'System.Collections.Hashtable' was not found.
+[2024-02-06 23:07:27] StackTrace: 
+[2024-02-06 23:07:27] Exception Source: C:\utils\scripts\Set-Visibility.ps1
+[2024-02-06 23:07:27] Exception Line: 45
+[2024-02-06 23:07:27] Exception Offset: 21
+[2024-02-06 23:07:39] Error: Requested value 'System.Collections.Hashtable' was not found.
+[2024-02-06 23:07:39] StackTrace: 
+[2024-02-06 23:07:39] Exception Source: C:\utils\scripts\Set-Visibility.ps1
+[2024-02-06 23:07:39] Exception Line: 42
+[2024-02-06 23:07:39] Exception Offset: 17
+[2024-02-07 22:17:48] Error: The term 'Get-CurrentDirectorySize' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2024-02-07 22:17:48] StackTrace:    at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)
+   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+[2024-02-07 22:17:48] Exception Source: C:\utils\scripts\Optimize-PSX.ps1
+[2024-02-07 22:17:48] Exception Line: 305
+[2024-02-07 22:17:48] Exception Offset: 35
+[2024-02-07 22:20:48] Error: The term 'Get-CurrentDirectorySize' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2024-02-07 22:20:48] StackTrace:    at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)
+   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+[2024-02-07 22:20:48] Exception Source: C:\utils\scripts\Optimize-PSX.ps1
+[2024-02-07 22:20:48] Exception Line: 305
+[2024-02-07 22:20:48] Exception Offset: 35
+[2024-02-07 22:21:18] Entering Archive Mode...
+[2024-02-07 22:21:18] Archive Mode skipped: No archive files found!
+[2024-02-07 22:21:18] Entering Image Mode...
+[2024-02-07 22:21:18] Converting image: C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).cue
+[2024-02-07 22:21:18] Executing: chdman createcd -i "C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).cue" -o "C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).chd"
+
+[2024-02-07 22:21:18] Error: The term 'chdman' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+[2024-02-07 22:21:18] StackTrace:    at System.Management.Automation.ExceptionHandlingOps.CheckActionPreference(FunctionContext funcContext, Exception exception)
+   at System.Management.Automation.Interpreter.ActionCallInstruction`2.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.EnterTryCatchFinallyInstruction.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.Interpreter.Run(InterpretedFrame frame)
+   at System.Management.Automation.Interpreter.LightLambda.RunVoid1[T0](T0 arg0)
+   at System.Management.Automation.ScriptBlock.InvokeWithPipeImpl(ScriptBlockClauseToInvoke clauseToInvoke, Boolean createLocalScope, Dictionary`2 functionsToDefine, List`1 variablesToDefine, ErrorHandlingBehavior errorHandlingBehavior, Object dollarUnder, Object input, Object scriptThis, Pipe outputPipe, InvocationInfo invocationInfo, Object[] args)
+   at System.Management.Automation.ScriptBlock.InvokeWithPipe(Boolean useLocalScope, ErrorHandlingBehavior errorHandlingBehavior, Object dollarUnder, Object input, Object scriptThis, Pipe outputPipe, InvocationInfo invocationInfo, Boolean propagateAllExceptionsToTop, List`1 variablesToDefine, Dictionary`2 functionsToDefine, Object[] args)
+   at System.Management.Automation.ScriptBlock.InvokeUsingCmdlet(Cmdlet contextCmdlet, Boolean useLocalScope, ErrorHandlingBehavior errorHandlingBehavior, Object dollarUnder, Object input, Object scriptThis, Object[] args)
+   at Microsoft.PowerShell.Commands.InvokeExpressionCommand.ProcessRecord()
+   at System.Management.Automation.CommandProcessor.ProcessRecord()
+[2024-02-07 22:21:18] Exception Source: 
+[2024-02-07 22:21:18] Exception Line: 1
+[2024-02-07 22:21:18] Exception Offset: 1
+[2024-02-07 22:21:18] Error: Error executing command
+[2024-02-07 22:21:18] StackTrace: 
+[2024-02-07 22:21:18] Exception Source: C:\utils\scripts\lib\ErrorHandling.ps1
+[2024-02-07 22:21:18] Exception Line: 16
+[2024-02-07 22:21:18] Exception Offset: 5
+[2024-02-07 22:22:02] Entering Archive Mode...
+[2024-02-07 22:22:03] Archive Mode skipped: No archive files found!
+[2024-02-07 22:22:03] Entering Image Mode...
+[2024-02-07 22:22:03] Converting image: C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).cue
+[2024-02-07 22:22:03] Executing: chdman createcd -i "C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).cue" -o "C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).chd"
+
+[2024-02-07 22:22:23] chdman - MAME Compressed Hunks of Data (CHD) manager 0.252 (mame0252) Output CHD:   C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).chd Input file:   C:\Users\timot\Downloads\Breakout (USA)\Breakout (USA).cue Input tracks: 49 Input length: 68:30:36 Compression:  cdlz (CD LZMA), cdzl (CD Deflate), cdfl (CD FLAC) Logical size: 754,826,112
+[2024-02-07 22:22:23] Summary
+[2024-02-07 22:22:23] Initial Directory Size: 725093995 bytes (691.5 MB)
+[2024-02-07 22:22:23] Final Directory Size: 1124554518 bytes (1072.46 MB)
+[2024-02-07 22:22:23] Total Difference: 380.96 MB Lost
+[2024-02-07 22:22:23] Total Archives Extracted: 0
+[2024-02-07 22:22:23] Total Images Converted: 1
+[2024-02-07 22:22:23] Total Files Deleted: 0
+[2024-02-07 22:22:23] Total Operations: 1
+[2024-02-07 22:22:23] CHD Files Created Successfully:
+[2024-02-07 22:22:23]  + Breakout (USA).cue
+[2024-02-07 22:22:23] Operations completed in 0m 20s 132ms
+[2024-02-07 22:24:01] Entering Archive Mode...
+[2024-02-07 22:24:01] Hashing archive: "C:\Users\timot\Downloads\Breakout (USA).7z"
+[2024-02-07 22:24:01] SHA-256 hash: D7737A4B422A956B92CBC330FF947B7F340C28B960D62DACDA821EE43B5EB5CD
+[2024-02-07 22:24:01] Extracting archive: "C:\Users\timot\Downloads\Breakout (USA).7z"
+[2024-02-07 22:24:16] Extraction complete.
+[2024-02-07 22:24:16] Entering Image Mode...
+[2024-02-07 22:24:16] Converting image: C:\Users\timot\Downloads\Breakout (USA).cue
+[2024-02-07 22:24:16] Executing: chdman createcd -i "C:\Users\timot\Downloads\Breakout (USA).cue" -o "C:\Users\timot\Downloads\Breakout (USA).chd"
+
+[2024-02-07 22:24:36] chdman - MAME Compressed Hunks of Data (CHD) manager 0.252 (mame0252) Output CHD:   C:\Users\timot\Downloads\Breakout (USA).chd Input file:   C:\Users\timot\Downloads\Breakout (USA).cue Input tracks: 49 Input length: 68:30:36 Compression:  cdlz (CD LZMA), cdzl (CD Deflate), cdfl (CD FLAC) Logical size: 754,826,112
+[2024-02-07 22:24:36] Summary
+[2024-02-07 22:24:36] Initial Directory Size: 596013569 bytes (568.4 MB)
+[2024-02-07 22:24:36] Final Directory Size: 1720568087 bytes (1640.86 MB)
+[2024-02-07 22:24:36] Total Difference: 1072.46 MB Lost
+[2024-02-07 22:24:36] Total Archives Extracted: 1
+[2024-02-07 22:24:36] Total Images Converted: 1
+[2024-02-07 22:24:36] Total Files Deleted: 1
+[2024-02-07 22:24:36] Total Operations: 53
+[2024-02-07 22:24:36] CHD Files Created Successfully:
+[2024-02-07 22:24:36]  + 
+[2024-02-07 22:24:36] Operations completed in 0m 35s 406ms
+[2024-02-07 22:25:50] Entering Archive Mode...
+[2024-02-07 22:25:51] Hashing archive: "C:\Users\timot\Downloads\Breakout (USA).7z"
+[2024-02-07 22:25:51] SHA-256 hash: D7737A4B422A956B92CBC330FF947B7F340C28B960D62DACDA821EE43B5EB5CD
+[2024-02-07 22:25:51] Extracting archive: "C:\Users\timot\Downloads\Breakout (USA).7z"
+[2024-02-07 22:26:06] Extraction complete.
+[2024-02-07 22:26:06] Entering Image Mode...
+[2024-02-07 22:26:06] Converting image: C:\Users\timot\Downloads\Breakout (USA).cue
+[2024-02-07 22:26:06] Executing: chdman createcd -i "C:\Users\timot\Downloads\Breakout (USA).cue" -o "C:\Users\timot\Downloads\Breakout (USA).chd"
+
+[2024-02-07 22:26:26] chdman - MAME Compressed Hunks of Data (CHD) manager 0.252 (mame0252) Output CHD:   C:\Users\timot\Downloads\Breakout (USA).chd Input file:   C:\Users\timot\Downloads\Breakout (USA).cue Input tracks: 49 Input length: 68:30:36 Compression:  cdlz (CD LZMA), cdzl (CD Deflate), cdfl (CD FLAC) Logical size: 754,826,112
+[2024-02-07 22:26:26] Summary
+[2024-02-07 22:26:26] Initial Directory Size: 596013569 bytes (568.4 MB)
+[2024-02-07 22:26:26] Final Directory Size: 1720568087 bytes (1640.86 MB)
+[2024-02-07 22:26:26] Total Difference: 1072.46 MB Lost
+[2024-02-07 22:26:26] Total Archives Extracted: 1
+[2024-02-07 22:26:26] Total Images Converted: 1
+[2024-02-07 22:26:26] Total Files Deleted: 1
+[2024-02-07 22:26:26] Total Operations: 53
+[2024-02-07 22:26:26] CHD Files Created Successfully:
+[2024-02-07 22:26:26]  + C:\Users\timot\Downloads\Breakout (USA).chd
+[2024-02-07 22:26:26] Operations completed in 0m 35s 932ms

@@ -62,13 +62,6 @@
 #>
 
 ###############################################
-# Imports
-###############################################
-
-. .\lib\TextHandling.ps1
-. .\lib\ErrorHandling.ps1
-
-###############################################
 # Parameters
 ###############################################
 
@@ -80,6 +73,21 @@ param (
     [alias("silent")][switch]$SilentMode,   # Silent mode
     [alias("sa")][switch]$SkipArchive       # Skip archive extraction
 )
+
+###############################################
+# Imports
+###############################################
+
+. "$PSScriptRoot\lib\ErrorHandling.ps1"
+. "$PSScriptRoot\lib\TextHandling.ps1"
+. "$PSScriptRoot\lib\SysOperation.ps1"
+
+try {
+    if (!(Get-Module 7Zip4Powershell -ListAvailable)) { Install-Module 7Zip4Powershell }
+
+    Import-Module 7Zip4Powershell
+}
+catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 
 ###############################################
 # Objects
@@ -101,52 +109,13 @@ $FileOperations = @{
 }
 
 ###############################################
-# Helper Functions
-###############################################
-
-function Get-CurrentDirectorySize {
-    $initialDirectorySizeBytes = (Get-ChildItem -Path . -Recurse -Force | Measure-Object -Property Length -Sum).Sum
-    return $initialDirectorySizeBytes
-}
-
-function Invoke-Command() {
-    param (
-        [string]$Command
-    )
-
-    Write-Console "Executing: $Command`n"
-
-    try {
-        $output = Invoke-Expression $Command -ErrorAction Stop
-    } catch {
-        ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
-    }
-
-    Write-Log $output
-    return $output
-}
-
-function Measure-FileOperations() {
-    param (
-        [hashtable]$FileOperations
-    )
-}
-
-###############################################
-# File operations
+# Functions
 ###############################################
 
 function Expand-Archives() {
     param (
         [string]$Path
     )
-
-    try {
-        if (!(Get-Module 7Zip4Powershell -ListAvailable)) { Install-Module 7Zip4Powershell }
-
-        Import-Module 7Zip4Powershell
-    }
-    catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 
     Write-Console "Entering Archive Mode...";
     Write-Divider -Strong
@@ -258,7 +227,7 @@ function Compress-Images() {
         Invoke-Command $convertCommand
         Write-Divider
 
-        $FileOperations.CHDFileList += $image.Name
+        $FileOperations.CHDFileList += $resolvedPath
         $FileOperations.TotalFileConversions++; $FileOperations.TotalFileOperations++
 
         if ($DeleteImage) {
@@ -327,36 +296,44 @@ function Summarize() {
 # Main
 ###############################################
 
-try {
-    $ScriptAttributes.StartTime = Get-Date
-    $CWDSizeBytes_Before    = Get-CurrentDirectorySize
-    $CWDSizeBytes_Current   = 0
+function Optimize-PSX() {
+    param (
+        [string]$Path
+    )
 
-    Write-Console "Optimize-PSX Script $($ScriptAttributes.Version)" -NoLog
-    Write-Console "Written in PowerShell 7.4.1" -NoLog
-    Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
-    Write-Console "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -NoLog
-    Write-Divider -Strong
-    if (!$Force -and ($DeleteArchive -or $DeleteImage)) {
-        Write-Console "Warning: `$DeleteArchive and/or `$DeleteImage are enabled. These options permanently delete ALL source files in their respective directories."
-        Write-Console "Are you sure you want to continue? (Y/N)"
-        $response = Read-Host
-        if ($response -ne "Y") {
-            Write-Console "Exiting..."
-            exit
+    try {
+        $ScriptAttributes.StartTime = Get-Date
+        $CWDSizeBytes_Before    = Get-CurrentDirectorySize
+        $CWDSizeBytes_Current   = 0
+    
+        Write-Console "Optimize-PSX Script $($ScriptAttributes.Version)" -NoLog
+        Write-Console "Written in PowerShell 7.4.1" -NoLog
+        Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
+        Write-Console "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -NoLog
+        Write-Divider -Strong
+        if (!$Force -and ($DeleteArchive -or $DeleteImage)) {
+            Write-Console "Warning: `$DeleteArchive and/or `$DeleteImage are enabled. These options permanently delete ALL source files in their respective directories."
+            Write-Console "Are you sure you want to continue? (Y/N)"
+            $response = Read-Host
+            if ($response -ne "Y") {
+                Write-Console "Exiting..."
+                exit
+            }
         }
-    }
-
-    if (!$SkipArchive) {
-        Expand-Archives(Get-Location)
-        if ($DeleteArchive) {
-            Start-Sleep -Seconds 2
-            Get-Process | Where-Object { $_.ProcessName -like '7z*' } | Stop-Process -Force
+    
+        if (!$SkipArchive) {
+            Expand-Archives(Get-Location)
+            if ($DeleteArchive) {
+                Start-Sleep -Seconds 2
+                Get-Process | Where-Object { $_.ProcessName -like '7z*' } | Stop-Process -Force
+            }
         }
-    }
-    Compress-Images(Get-Location)
+        Compress-Images(Get-Location)
+    
+        $CWDSizeBytes_Current = Get-CurrentDirectorySize
+    
+        Summarize $CWDSizeBytes_Before $CWDSizeBytes_Current
+    } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+}
 
-    $CWDSizeBytes_Current = Get-CurrentDirectorySize
-
-    Summarize $CWDSizeBytes_Before $CWDSizeBytes_Current
-} catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+Optimize-PSX $Path
