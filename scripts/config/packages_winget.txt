@@ -11,4 +11,4 @@ Python.Python.3.12
 qBittorrent.qBittorrent
 Spotify.Spotify
 SumatraPDF.SumatraPDF
-WiresharkFoundation.Wireshark4
+WiresharkFoundation.Wireshark
