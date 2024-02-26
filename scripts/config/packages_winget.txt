@@ -9,6 +9,7 @@ Mozilla.Firefox
 MullvadVPN.MullvadVPN
 Python.Python.3.12
 qBittorrent.qBittorrent
+SomePythonThings.WingetUIStore
 Spotify.Spotify
 SumatraPDF.SumatraPDF
 WiresharkFoundation.Wireshark
