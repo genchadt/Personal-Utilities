@@ -1,3 +1,4 @@
+AutoHotkey.AutoHotkey
 Chocolatey.Chocolatey
 eloston.ungoogled-chromium
 flux.flux
