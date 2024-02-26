@@ -13,3 +13,4 @@ SomePythonThings.WingetUIStore
 Spotify.Spotify
 SumatraPDF.SumatraPDF
 WiresharkFoundation.Wireshark
+Zoom.Zoom
