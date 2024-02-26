@@ -1,5 +1,5 @@
 param (
-    [string]$packagesFile = "packages.txt",
+    [string]$packagesFile = ".\config\packages_winget.txt",
     [switch]$force
 )
 
@@ -7,11 +7,14 @@ try {
     $packages = Get-Content $packagesFile -ErrorAction Stop
 
     foreach ($package in $packages) {
-        $installCommand = if ($force) { "choco install $package -y"} else { "choco install $package" }
+        $installCommand = "winget install $package"
+        if ($force) {
+            $installCommand += " --force"
+        }
         Invoke-Expression $installCommand
     }
 
-    Write-Host "Chocolatey packages installation complete."
+    Write-Host "Winget packages installation complete."
 } catch {
     Write-Host "An error occurred: $_"
     Add-Content -Path "errorLog.txt" -Value ("[" + (Get-Date) + "] Error: $_")

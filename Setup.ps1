@@ -23,7 +23,8 @@ $programs = @(
 $scripts = @(
     @{ Name = ".\scripts\AutoAddPath.ps1" }
     @{ Name = ".\scripts\Chocolatey-PacMan-Installer.ps1" }
-    @{ Name = ".\scripts\Chocolatey-Packages-Setup.ps1"; Argument = ".\scripts\config\Packages.txt" }
+    @{ Name = ".\scripts\Install-Packages-Winget.ps1"; Argument = ".\scripts\config\packages_winget.txt" }
+    @{ Name = ".\scripts\Install-Packages-Chocolatey.ps1"; Argument = ".\scripts\config\packages_choco.txt" }
     @{ Name = "Install-Module 7Zip4PowerShell" }
 )
 

@@ -1,7 +1,0 @@
-7zip
-firefox
-git
-python
-speedtest-cli
-ungoogled-chromium
-vscode

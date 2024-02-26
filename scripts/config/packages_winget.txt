@@ -1,0 +1,14 @@
+Chocolatey.Chocolatey
+eloston.ungoogled-chromium
+flux.flux
+Git.Git
+Microsoft.Sysinternals.ProcessExplorer
+Microsoft.Sysinternals.TCPView
+Microsoft.VisualStudioCode
+Mozilla.Firefox
+MullvadVPN.MullvadVPN
+Python.Python.3.12
+qBittorrent.qBittorrent
+Spotify.Spotify
+SumatraPDF.SumatraPDF
+WiresharkFoundation.Wireshark4
