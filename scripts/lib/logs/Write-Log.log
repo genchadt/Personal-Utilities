@@ -124,3 +124,65 @@ Check the spelling of the name, or if a path was included, verify that the path 
 [2024-02-07 22:26:26] CHD Files Created Successfully:
 [2024-02-07 22:26:26]  + C:\Users\timot\Downloads\Breakout (USA).chd
 [2024-02-07 22:26:26] Operations completed in 0m 35s 932ms
+[2024-03-01 11:41:52] Warning: $DeleteArchive and/or $DeleteImage are enabled. These options permanently delete ALL source files in their respective directories.
+[2024-03-01 11:41:52] Are you sure you want to continue? (Y/N)
+[2024-03-01 11:41:56] Entering Archive Mode...
+[2024-03-01 11:41:57] Hashing archive: "C:\Users\timot\Downloads\RC Revenge Pro (USA).7z"
+[2024-03-01 11:41:57] SHA-256 hash: 7F94188DB968D249FA24713C777F6EB7CEA4B4F736E5C2BF566F7163A681EF7F
+[2024-03-01 11:41:57] Extracting archive: "C:\Users\timot\Downloads\RC Revenge Pro (USA).7z"
+[2024-03-01 11:42:05] Extraction complete.
+[2024-03-01 11:42:05] Conversion completed. Deleting source image: 
+[2024-03-01 11:42:05] Constructed pattern: ^.*\.(bin|cue|gdi|iso|raw)$
+[2024-03-01 11:42:05] Deleting corresponding file: C:\Users\timot\Downloads\RC Revenge Pro (USA).bin
+[2024-03-01 11:42:05] Deleting corresponding file: C:\Users\timot\Downloads\RC Revenge Pro (USA).cue
+[2024-03-01 11:42:05] Source image and corresponding files deleted.
+[2024-03-01 11:42:05] Hashing archive: "C:\Users\timot\Downloads\Strikers 1945 (USA).7z"
+[2024-03-01 11:42:05] SHA-256 hash: B9F11522F7D77E3001D0D9C464E8623C94E4DA267FF1390F167F61793362F793
+[2024-03-01 11:42:05] Extracting archive: "C:\Users\timot\Downloads\Strikers 1945 (USA).7z"
+[2024-03-01 11:42:06] Extraction complete.
+[2024-03-01 11:42:06] Conversion completed. Deleting source image: 
+[2024-03-01 11:42:07] Constructed pattern: ^.*\.(bin|cue|gdi|iso|raw)$
+[2024-03-01 11:42:07] Deleting corresponding file: C:\Users\timot\Downloads\Strikers 1945 (USA).bin
+[2024-03-01 11:42:07] Deleting corresponding file: C:\Users\timot\Downloads\Strikers 1945 (USA).cue
+[2024-03-01 11:42:07] Source image and corresponding files deleted.
+[2024-03-01 11:42:09] Entering Image Mode...
+[2024-03-01 11:42:09] Summary
+[2024-03-01 11:42:09] Initial Directory Size: 646975841 bytes (617 MB)
+[2024-03-01 11:42:09] Final Directory Size: 646975841 bytes (617 MB)
+[2024-03-01 11:42:09] Total Difference: 0 MB Lost
+[2024-03-01 11:42:09] Total Archives Extracted: 2
+[2024-03-01 11:42:09] Total Images Converted: 0
+[2024-03-01 11:42:09] Total Files Deleted: 6
+[2024-03-01 11:42:09] Total Operations: 12
+[2024-03-01 11:42:09] CHD Files Created Successfully:
+[2024-03-01 11:42:09] Operations completed in 0m 16s 298ms
+[2024-03-01 11:42:41] Entering Archive Mode...
+[2024-03-01 11:42:41] Hashing archive: "C:\Users\timot\Downloads\RC Revenge Pro (USA).7z"
+[2024-03-01 11:42:41] SHA-256 hash: 7F94188DB968D249FA24713C777F6EB7CEA4B4F736E5C2BF566F7163A681EF7F
+[2024-03-01 11:42:41] Extracting archive: "C:\Users\timot\Downloads\RC Revenge Pro (USA).7z"
+[2024-03-01 11:42:48] Extraction complete.
+[2024-03-01 11:42:48] Hashing archive: "C:\Users\timot\Downloads\Strikers 1945 (USA).7z"
+[2024-03-01 11:42:48] SHA-256 hash: B9F11522F7D77E3001D0D9C464E8623C94E4DA267FF1390F167F61793362F793
+[2024-03-01 11:42:48] Extracting archive: "C:\Users\timot\Downloads\Strikers 1945 (USA).7z"
+[2024-03-01 11:42:50] Extraction complete.
+[2024-03-01 11:42:50] Entering Image Mode...
+[2024-03-01 11:42:50] Converting image: C:\Users\timot\Downloads\RC Revenge Pro (USA).cue
+[2024-03-01 11:42:50] Executing: chdman createcd -i "C:\Users\timot\Downloads\RC Revenge Pro (USA).cue" -o "C:\Users\timot\Downloads\RC Revenge Pro (USA).chd"
+
+[2024-03-01 11:43:12] chdman - MAME Compressed Hunks of Data (CHD) manager 0.252 (mame0252) Output CHD:   C:\Users\timot\Downloads\RC Revenge Pro (USA).chd Input file:   C:\Users\timot\Downloads\RC Revenge Pro (USA).cue Input tracks: 1 Input length: 66:58:11 Compression:  cdlz (CD LZMA), cdzl (CD Deflate), cdfl (CD FLAC) Logical size: 737,739,072
+[2024-03-01 11:43:12] Converting image: C:\Users\timot\Downloads\Strikers 1945 (USA).cue
+[2024-03-01 11:43:12] Executing: chdman createcd -i "C:\Users\timot\Downloads\Strikers 1945 (USA).cue" -o "C:\Users\timot\Downloads\Strikers 1945 (USA).chd"
+
+[2024-03-01 11:43:17] chdman - MAME Compressed Hunks of Data (CHD) manager 0.252 (mame0252) Output CHD:   C:\Users\timot\Downloads\Strikers 1945 (USA).chd Input file:   C:\Users\timot\Downloads\Strikers 1945 (USA).cue Input tracks: 1 Input length: 13:11:54 Compression:  cdlz (CD LZMA), cdzl (CD Deflate), cdfl (CD FLAC) Logical size: 145,362,240
+[2024-03-01 11:43:17] Summary
+[2024-03-01 11:43:17] Initial Directory Size: 646975841 bytes (617 MB)
+[2024-03-01 11:43:17] Final Directory Size: 2091851245 bytes (1994.94 MB)
+[2024-03-01 11:43:17] Total Difference: 1377.94 MB Lost
+[2024-03-01 11:43:17] Total Archives Extracted: 2
+[2024-03-01 11:43:17] Total Images Converted: 2
+[2024-03-01 11:43:17] Total Files Deleted: 2
+[2024-03-01 11:43:17] Total Operations: 10
+[2024-03-01 11:43:17] CHD Files Created Successfully:
+[2024-03-01 11:43:17]  + C:\Users\timot\Downloads\RC Revenge Pro (USA).chd
+[2024-03-01 11:43:17]  + C:\Users\timot\Downloads\Strikers 1945 (USA).chd
+[2024-03-01 11:43:17] Operations completed in 0m 35s 809ms

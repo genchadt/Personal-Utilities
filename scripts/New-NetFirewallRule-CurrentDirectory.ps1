@@ -1,4 +1,3 @@
-# Import custom libraries
 . ".\lib\TextHandling.ps1"
 . ".\lib\ErrorHandling.ps1"
 
