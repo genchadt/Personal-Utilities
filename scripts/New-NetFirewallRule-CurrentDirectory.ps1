@@ -1,6 +1,3 @@
-. ".\lib\TextHandling.ps1"
-. ".\lib\ErrorHandling.ps1"
-
 param(
     [switch]$check,
     [alias("del")]
@@ -8,6 +5,9 @@ param(
     [alias("l")]
     [switch]$list
 )
+
+. "$PSScriptRoot\lib\ErrorHandling.ps1"
+. "$PSScriptRoot\lib\TextHandling.ps1"
 
 function ListScriptCreatedFirewallRules {
     Get-NetFirewallRule | Where-Object { $_.DisplayName -like "Block Folder: *" }
@@ -51,25 +51,29 @@ function CheckAndExecuteRule {
     }
 }
 
-try {
-    $folderName = (Get-Item (Get-Location)).Name
-    $ruleName = "Block Folder: $folderName"
-
-    if ($list) {
-        $rules = ListScriptCreatedFirewallRules
-        if ($rules) {
-            Write-Divider -Strong
-            Write-Console -Text "Listing all script-created firewall rules:"
-            $rules | ForEach-Object { Write-Console -Text "$($_.DisplayName): $($_.Direction) - $($_.Action)" }
-            Write-Divider -Strong
+function New-NetFirewallRule-CurrentDirectory {
+    try {
+        $folderName = (Get-Item (Get-Location)).Name
+        $ruleName = "Block Folder: $folderName"
+    
+        if ($list) {
+            $rules = ListScriptCreatedFirewallRules
+            if ($rules) {
+                Write-Divider -Strong
+                Write-Console -Text "Listing all script-created firewall rules:"
+                $rules | ForEach-Object { Write-Console -Text "$($_.DisplayName): $($_.Direction) - $($_.Action)" }
+                Write-Divider -Strong
+            } else {
+                Write-Console -Text "No script-created firewall rules found."
+            }
+        } elseif ($check) {
+            CheckFirewallRuleExists -RuleName $ruleName
         } else {
-            Write-Console -Text "No script-created firewall rules found."
+            CheckAndExecuteRule -RuleName $ruleName -Remove:$delete
         }
-    } elseif ($check) {
-        CheckFirewallRuleExists -RuleName $ruleName
-    } else {
-        CheckAndExecuteRule -RuleName $ruleName -Remove:$delete
+    } catch {
+        ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
     }
-} catch {
-    ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
 }
+
+New-NetFirewallRule-CurrentDirectory
