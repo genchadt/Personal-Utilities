@@ -6,8 +6,8 @@ param(
     [switch]$list
 )
 
-. "$PSScriptRoot\lib\ErrorHandling.ps1"
-. "$PSScriptRoot\lib\TextHandling.ps1"
+Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
+Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
 
 function ListScriptCreatedFirewallRules {
     Get-NetFirewallRule | Where-Object { $_.DisplayName -like "Block Folder: *" }

@@ -20,9 +20,14 @@ $programs = @(
     @{ Name = "pwsh.exe"; FriendlyName = "PowerShell" }
 )
 
+############################################################################
+# !     Define scripts and their arguments below    !
+# Example: @{ Name = "Install-Packages-Winget.ps1"; Argument = ".\scripts\config\packages_winget.txt" }
+############################################################################
+
 $scripts = @(
-    @{ Name = ".\scripts\AutoAddPath.ps1" }
-    @{ Name = ".\scripts\Chocolatey-PacMan-Installer.ps1" }
+    @{ Name = ".\scripts\Add-Paths.ps1" }
+    @{ Name = ".\scripts\Install-Chocolatey-PacMan.ps1" }
     @{ Name = ".\scripts\Install-Packages-Winget.ps1"; Argument = ".\scripts\config\packages_winget.txt" }
     @{ Name = ".\scripts\Install-Packages-Chocolatey.ps1"; Argument = ".\scripts\config\packages_choco.txt" }
     @{ Name = "Install-Module 7Zip4PowerShell" }

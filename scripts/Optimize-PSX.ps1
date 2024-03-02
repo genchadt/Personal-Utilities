@@ -69,7 +69,6 @@ param (
     [alias("da")][switch]$DeleteArchive,    # Delete the source archive
     [alias("di")][switch]$DeleteImage,      # Delete the source image
     [alias("f")][switch]$Force,             # Force overwriting
-    [alias("nl")][switch]$NoLog,            # Do not write to log file
     [alias("silent")][switch]$SilentMode,   # Silent mode
     [alias("sa")][switch]$SkipArchive       # Skip archive extraction
 )
@@ -78,14 +77,16 @@ param (
 # Imports
 ###############################################
 
-. "$PSScriptRoot\lib\ErrorHandling.ps1"
-. "$PSScriptRoot\lib\TextHandling.ps1"
-. "$PSScriptRoot\lib\SysOperation.ps1"
+Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
+Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
+Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
 
 try {
     if (!(Get-Module 7Zip4Powershell -ListAvailable)) { Install-Module 7Zip4Powershell }
+    if (!(Get-Module Recyle -ListAvailable)) { Install-Module Recyle }
 
     Import-Module 7Zip4Powershell
+    Import-Module Recyle
 }
 catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 
@@ -94,18 +95,22 @@ catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exceptio
 ###############################################
 
 $ScriptAttributes = @{
-    LogFile = "logs\Optimize-PSX.log"
-    StartTime = $null
-    Version = "1.1.2"
+    LogFile                     = "logs\Optimize-PSX.log"
+    StartTime                   = $null
+    Version                     = "1.1.2"
 }
 
 $FileOperations = @{
-    CHDFileList = @()
-    InitialDirectorySizeBytes = 0
-    TotalFileConversions = 0
-    TotalFileDeletions = 0
-    TotalFileExtractions = 0
-    TotalFileOperations = 0
+    CHDFileList                 = @()
+    DeletionCandidates          = @()
+    DeletedArchives             = @()
+    DeletedImages               = @()
+    FinalDirectorySizeBytes     = 0
+    InitialDirectorySizeBytes   = 0
+    TotalFileConversions        = 0
+    TotalFileDeletions          = 0
+    TotalFileExtractions        = 0
+    TotalFileOperations         = 0
 }
 
 ###############################################
@@ -116,6 +121,8 @@ function Expand-Archives() {
     param (
         [string]$Path
     )
+
+    $extractedFilesSize = 0
 
     Write-Console "Entering Archive Mode...";
     Write-Divider -Strong
@@ -130,22 +137,31 @@ function Expand-Archives() {
     foreach ($archive in $archives) {
         $extractDestination = Join-Path $archive.Directory.FullName $archive.BaseName
 
+        # Hash archive
         try {
-            $hashValue = Get-FileHash -Algorithm SHA256 -LiteralPath $archive.FullName | Select-Object -ExpandProperty Hash
-
             Write-Console "Hashing archive: `"$($archive.FullName)`""
+            $hashValue = Get-FileHash -Algorithm SHA256 -LiteralPath $archive.FullName | Select-Object -ExpandProperty Hash
             Write-Console "SHA-256 hash: $hashValue"
             Write-Divider
         }
         catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 
-        
-        Write-Console "Extracting archive: `"$($archive.FullName)`""
-        Expand-7Zip -ArchiveFileName $archive.FullName -TargetPath $extractDestination
-        $FileOperations.TotalFileExtractions++; $FileOperations.TotalFileOperations++
-        Write-Console "Extraction complete."
-        Write-Divider -Strong
-    
+        # Extract archive
+        try {
+            Write-Console "Extracting archive: `"$($archive.FullName)`""
+            Expand-7Zip -ArchiveFileName $archive.FullName -TargetPath $extractDestination
+            $FileOperations.TotalFileExtractions++; $FileOperations.TotalFileOperations++
+            Write-Console "Extraction complete."
+            Write-Divider -Strong
+        }
+        catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+
+        # Determine total file size of all extracted files
+        $extractedFiles = Get-ChildItem -Path $extractDestination -Recurse
+        foreach ($extractedFile in $extractedFiles) {
+            $extractedFilesSize += $extractedFile.Length
+        }
+
         # Move all .bin/.cue/.iso files to the parent folder
         $imageFiles = Get-ChildItem -Path $extractDestination -Filter *.* -Include *.bin, *.cue, *.gdi, *.iso, *.raw -Recurse
         foreach ($imageFile in $imageFiles) {
@@ -154,8 +170,11 @@ function Expand-Archives() {
             $FileOperations.TotalFileOperations++
         }
 
-        Remove-Item -Path $extractDestination -Force -Recurse
-        $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
+        if ($DeleteArchive) {
+            Write-Console "Deleting source archive: $($archive.FullName)"
+            $FileOperations.DeletionCandidates += $archive.FullName
+            Write-Divider
+        }
     
         if ($DeleteImage) {
             # Wait for the completion of the conversion before deleting the source image
@@ -171,8 +190,7 @@ function Expand-Archives() {
         
             foreach ($matchingFile in $matchingFiles) {
                 Write-Console "Deleting corresponding file: $($matchingFile.FullName)"
-                Remove-Item -LiteralPath $matchingFile.FullName -Force
-                $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
+                $FileOperations.DeletionCandidates += $matchingFile.FullName
             }
         
             Write-Console "Source image and corresponding files deleted."
@@ -243,7 +261,7 @@ function Compress-Images() {
             
             foreach ($matchingFile in $matchingFiles) {
                 Write-Console "Deleting corresponding file: $($matchingFile.FullName)"
-                Remove-Item -LiteralPath $matchingFile.FullName -Force
+                $FileOperations.DeletionCandidates += $matchingFile.FullName
                 $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
             }
             
@@ -254,17 +272,64 @@ function Compress-Images() {
     }
 }
 
+function Remove-DeletionCandidates() {
+    Write-Console "File Deletion Candidates:"
+    Write-Divider -Strong
+    foreach ($candidate in $FileOperations.DeletionCandidates) {
+        Write-Console "    + $candidate"
+    }
+    Write-Divider
+    
+    foreach ($candidate in $FileOperations.DeletionCandidates) {
+        $validInput = false
+        
+        do {
+            if ($userChoice -ne 'A') {
+                $userChoice = Read-Console -Text "Are you sure you want to delete $candidate?" 
+            }
+
+            if ($userChoice -eq 'Y' -or $userChoice -eq 'A' -or $userChoice -eq 'N' -or $userChoice -eq 'D') {
+                $validInput = $true
+            }
+
+            switch ($userChoice.ToUpper()) {
+                'Y' { 
+                    Write-Console "Deleting $candidate"
+                    Remove-ItemSafely -Path $candidate -DeletePermanently:$false
+                    $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
+                }
+                'A' { 
+                    Write-Console "Deleting $candidate"
+                    Remove-ItemSafely -Path $candidate -DeletePermanently:$false
+                    $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
+                    break
+                }
+                'N' { 
+                    Write-Console "Skipping $candidate"
+                    continue
+                }
+                'D' { 
+                    Write-Console "No further deletions to be made."
+                    return
+                }
+                default { 
+                    Write-Console "Invalid input. Please try again."
+                }
+            }
+        } while (-not $validInput)
+    }
+}
+
 function Summarize() {
-    param (
-        [long]$InitialDirectorySizeBytes,
-        [long]$FinalDirectorySizeBytes
-    )
+    $InitialDirectorySizeBytes = $FileOperations.InitialDirectorySizeBytes
+    $FinalDirectorySizeBytes = $FileOperations.FinalDirectorySizeBytes
 
     $InitialDirectorySizeMB = [math]::Round($InitialDirectorySizeBytes / 1MB, 2)
     $FinalDirectorySizeMB = [math]::Round($FinalDirectorySizeBytes / 1MB, 2)
 
     $SavedOrLost = if ($FinalDirectorySizeBytes -lt $InitialDirectorySizeBytes) { "Saved" } else { "Lost" }
-    $SpaceDifference = [math]::Round([math]::Abs($FinalDirectorySizeBytes - $InitialDirectorySizeBytes) / 1MB, 2)
+    $SpaceDifferenceBytes = [math]::Round([math]::Abs($FinalDirectorySizeBytes - $InitialDirectorySizeBytes) / 1MB, 2)
+    $SpaceDifferenceMB = [math]::Abs($FinalDirectorySizeBytes - $InitialDirectorySizeBytes)
 
     $StartTime = $ScriptAttributes.StartTime
     $EndTime = Get-Date
@@ -275,7 +340,7 @@ function Summarize() {
     Write-Console "Initial Directory Size: $InitialDirectorySizeBytes bytes ($InitialDirectorySizeMB MB)"
     Write-Console "Final Directory Size: $FinalDirectorySizeBytes bytes ($FinalDirectorySizeMB MB)"
     Write-Divider
-    Write-Console "Total Difference: $SpaceDifference MB $SavedOrLost"
+    Write-Console "File Size Difference: $SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost"
     Write-Divider -Strong
     Write-Console "Total Archives Extracted: $($FileOperations.TotalFileExtractions)"
     Write-Console "Total Images Converted: $($FileOperations.TotalFileConversions)"
@@ -285,7 +350,7 @@ function Summarize() {
     Write-Divider -Strong
     Write-Console "CHD Files Created Successfully:"
     foreach ($file in $FileOperations.CHDFileList) {
-        Write-Console " + $file"
+        Write-Console "    + $file"
     }
     Write-Divider
     Write-Console "Operations completed in $($EstimatedRuntime.Minutes)m $($EstimatedRuntime.Seconds)s $($EstimatedRuntime.Milliseconds)ms"
@@ -303,37 +368,34 @@ function Optimize-PSX() {
 
     try {
         $ScriptAttributes.StartTime = Get-Date
-        $CWDSizeBytes_Before    = Get-CurrentDirectorySize
-        $CWDSizeBytes_Current   = 0
+        $FileOperations.InitialDirectorySizeBytes = Get-CurrentDirectorySize
     
         Write-Console "Optimize-PSX Script $($ScriptAttributes.Version)" -NoLog
         Write-Console "Written in PowerShell 7.4.1" -NoLog
         Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
         Write-Console "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -NoLog
         Write-Divider -Strong
-        if (!$Force -and ($DeleteArchive -or $DeleteImage)) {
-            Write-Console "Warning: `$DeleteArchive and/or `$DeleteImage are enabled. These options permanently delete ALL source files in their respective directories."
-            Write-Console "Are you sure you want to continue? (Y/N)"
-            $response = Read-Host
-            if ($response -ne "Y") {
-                Write-Console "Exiting..."
-                exit
-            }
-        }
-    
+
         if (!$SkipArchive) {
             Expand-Archives(Get-Location)
             if ($DeleteArchive) {
                 Start-Sleep -Seconds 2
                 Get-Process | Where-Object { $_.ProcessName -like '7z*' } | Stop-Process -Force
             }
+        } else {
+            Write-Console "Archive Mode Skipped: User declined archive mode."
         }
+
         Compress-Images(Get-Location)
+
+        if ($DeleteArchive -or $DeleteImage) {
+            Remove-DeletionCandidates(Get-Location)
+        }
     
-        $CWDSizeBytes_Current = Get-CurrentDirectorySize
+        $FileOperations.FinalDirectorySizeBytes = Get-CurrentDirectorySize
     
         Summarize $CWDSizeBytes_Before $CWDSizeBytes_Current
     } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 }
 
-Optimize-PSX $Path
+if ($MyInvocation.InvocationName -ne '.') { Optimize-PSX $Path }

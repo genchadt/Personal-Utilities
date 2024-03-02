@@ -55,32 +55,34 @@ function Add-PathsToSystemPath {
     }
 }
 
-# Main Script
+function Add-Paths {
+    # Define exclusion list with wildcards
+    $exclusionList = @(
+        "$($PSScriptRoot)\ext\NKit_v1.4\*"
+    )
 
-# Define exclusion list with wildcards
-$exclusionList = @(
-    "$($PSScriptRoot)\ext\NKit_v1.4\*"
-)
+    # Backup system PATH variables
+    Backup-SystemPath
 
-# Backup system PATH variables
-Backup-SystemPath
+    # Initialize variables
+    $currentPath = Get-Item -LiteralPath $PSScriptRoot | Select-Object -ExpandProperty FullName
 
-# Initialize variables
-$currentPath = Get-Item -LiteralPath $PSScriptRoot | Select-Object -ExpandProperty FullName
+    # Get all directories excluding those in the exclusion list and subdirectories
+    $directories = Get-ValidDirectories -BaseDirectory $currentPath -ExclusionList $exclusionList
 
-# Get all directories excluding those in the exclusion list and subdirectories
-$directories = Get-ValidDirectories -BaseDirectory $currentPath -ExclusionList $exclusionList
+    # Filter out directories that already exist in the system PATH and validate existence
+    $validDirectories = Find-NonExistingAndDuplicatePaths -Directories $directories
 
-# Filter out directories that already exist in the system PATH and validate existence
-$validDirectories = Find-NonExistingAndDuplicatePaths -Directories $directories
+    # Display paths to the user for review
+    Write-Host "Paths to be added to PATH:"
+    $validDirectories | ForEach-Object { Write-Output $_ }
 
-# Display paths to the user for review
-Write-Host "Paths to be added to PATH:"
-$validDirectories | ForEach-Object { Write-Output $_ }
-
-# Prompt user to add paths
-if ($validDirectories.Count -gt 0) {
-    Add-PathsToSystemPath -PathsToAdd $validDirectories
-} else {
-    Write-Host "No new valid paths to add."
+    # Prompt user to add paths
+    if ($validDirectories.Count -gt 0) {
+        Add-PathsToSystemPath -PathsToAdd $validDirectories
+    } else {
+        Write-Host "No new valid paths to add."
+    }
 }
+
+if ($MyInvocation.InvocationName -ne '.') { Add-Paths }
