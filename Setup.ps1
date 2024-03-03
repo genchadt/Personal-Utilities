@@ -37,7 +37,7 @@ $scripts = @(
 # !     DO NOT EDIT BELOW THIS LINE     !
 #############################################################################
 
-function Invoke-Installer {
+function Invoke-Script {
     param (
         [string]$scriptName,
         [string]$arguments
@@ -85,14 +85,17 @@ function Test-ProgramInstalled {
     }
 }
 
-# Check for administrative privileges and exit if not available
-Request-Elevation -scriptPath $MyInvocation.MyCommand.Path
+function Setup {
+    Request-Elevation -scriptPath $MyInvocation.MyCommand.Path
 
-# Check for required programs
-foreach ($program in $programs) {
-    Test-ProgramInstalled -programName $program.Name -friendlyName $program.FriendlyName
+    # Check for required programs
+    foreach ($program in $programs) {
+        Test-ProgramInstalled -programName $program.Name -friendlyName $program.FriendlyName
+    }
+
+    foreach ($script in $scripts) {
+        Invoke-Script -ScriptName $script.Name -Argument $script.Argument
+    }
 }
 
-foreach ($script in $scripts) {
-    Invoke-Installer -ScriptName $script.Name -Argument $script.Argument
-}
+if ($MyInvocation.InvocationName -ne ".") { Setup }

@@ -370,6 +370,7 @@ function Optimize-PSX() {
         $ScriptAttributes.StartTime = Get-Date
         $FileOperations.InitialDirectorySizeBytes = Get-CurrentDirectorySize
     
+        Write-Divider -Strong
         Write-Console "Optimize-PSX Script $($ScriptAttributes.Version)" -NoLog
         Write-Console "Written in PowerShell 7.4.1" -NoLog
         Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
