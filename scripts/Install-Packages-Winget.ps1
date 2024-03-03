@@ -7,7 +7,7 @@ try {
     $packages = Get-Content $packagesFile -ErrorAction Stop
 
     foreach ($package in $packages) {
-        $installCommand = "winget install $package"
+        $installCommand = "winget install $package -e -i"
         if ($force) {
             $installCommand += " --force"
         }
