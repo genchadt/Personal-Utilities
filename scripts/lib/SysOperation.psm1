@@ -3,7 +3,7 @@ function Get-CurrentDirectorySize {
     return $initialDirectorySizeBytes
 }
 
-function Invoke-Command() {
+function Invoke-Command {
     param (
         [string]$Command
     )
