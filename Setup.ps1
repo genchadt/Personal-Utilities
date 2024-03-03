@@ -12,15 +12,6 @@
 #>
 
 ############################################################################
-# !     Define required programs and their friendly names below     !
-# Example: @{ Name = "binary.exe"; FriendlyName = "Binary Name" }
-############################################################################
-
-$programs = @(
-    @{ Name = "pwsh.exe"; FriendlyName = "PowerShell" }
-)
-
-############################################################################
 # !     Define scripts and their arguments below    !
 # Example: @{ Name = "Install-Packages-Winget.ps1"; Argument = ".\scripts\config\packages_winget.txt" }
 ############################################################################
@@ -34,7 +25,16 @@ $scripts = @(
 )
 
 #############################################################################
-# !     DO NOT EDIT BELOW THIS LINE     !
+# Imports
+#############################################################################
+
+Import-Module "$PSScriptRoot\scripts\lib\ErrorHandling.psm1"
+Import-Module "$PSScriptRoot\scripts\lib\TextHandling.psm1"
+Import-Module "$PSScriptRoot\scripts\lib\SysOperation.psm1"
+. "$PSScriptRoot\scripts\Add-Paths.ps1"
+
+#############################################################################
+# Functions
 #############################################################################
 
 function Invoke-Script {
@@ -72,26 +72,23 @@ function Request-Elevation {
     }
 }
 
-function Test-ProgramInstalled {
-    param (
-        [string]$programName,
-        [string]$friendlyName
-    )
-    $path = (Get-Command $programName -ErrorAction SilentlyContinue)
-    if (-not $path) {
-        Write-Host "$friendlyName is not installed or not in the PATH. Please install $friendlyName and ensure it's added to the PATH.`n
-        Package Name: $programName"
-        exit 1
-    }
-}
+#############################################################################
+# Main
+#############################################################################
 
 function Setup {
+    # Check for elevation
     Request-Elevation -scriptPath $MyInvocation.MyCommand.Path
 
-    # Check for required programs
-    foreach ($program in $programs) {
-        Test-ProgramInstalled -programName $program.Name -friendlyName $program.FriendlyName
-    }
+    # Add all relevant paths to system PATH variable
+    Add-Paths
+
+    # Install Package Manager (Chocolatey)
+    Invoke-Command ".\scripts\Install-Chocolatey-PacMan.ps1"
+
+    # Install Packages (Chocolatey and Winget)
+    Invoke-Command ".\scripts\Install-Packages-Chocolatey.ps1"
+    Invoke-Command ".\scripts\Install-Packages-Winget.ps1"
 
     foreach ($script in $scripts) {
         Invoke-Script -ScriptName $script.Name -Argument $script.Argument
