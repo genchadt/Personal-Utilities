@@ -8,6 +8,7 @@ Microsoft.Sysinternals.TCPView
 Microsoft.VisualStudioCode
 Mozilla.Firefox
 MullvadVPN.MullvadVPN
+Ookla.Speedtest.CLI
 Python.Python.3.12
 qBittorrent.qBittorrent
 SomePythonThings.WingetUIStore
