@@ -50,7 +50,7 @@
 # Imports
 ###############################################
 
-. "$PSScriptRoot\TextHandling.ps1"
+Import-Module "$PSScriptRoot/../lib/TextHandling.psm1"
 
 ###############################################
 # Functions
@@ -73,16 +73,16 @@ function ErrorHandling {
     )
 
     Write-Divider -Strong
-    Write-Console -Text "Error: $ErrorMessage"
-    Write-Console -Text "StackTrace: $StackTrace"
+    Write-Console -Text "Error: $ErrorMessage" -MessageType Error
+    Write-Console -Text "StackTrace: $StackTrace" -MessageType Error
     if ($ScriptName) {
-        Write-Console -Text "Exception Source: $ScriptName"
+        Write-Console -Text "Exception Source: $ScriptName" -MessageType Error
     }
     if ($ScriptLineNumber -ne 0) {
-        Write-Console -Text "Exception Line: $ScriptLineNumber"
+        Write-Console -Text "Exception Line: $ScriptLineNumber" -MessageType Error
     }
     if ($OffsetInLine -ne 0) {
-        Write-Console -Text "Exception Offset: $OffsetInLine"
+        Write-Console -Text "Exception Offset: $OffsetInLine" -MessageType Error
     }
     Write-Divider -Strong
 
@@ -91,3 +91,5 @@ function ErrorHandling {
     # Or log the error without stopping execution
     Write-Log -Message "An error occurred: $ErrorMessage"
 }
+
+Export-ModuleMember -Function ErrorHandling

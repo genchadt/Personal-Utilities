@@ -83,10 +83,8 @@ Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
 
 try {
     if (!(Get-Module 7Zip4Powershell -ListAvailable)) { Install-Module 7Zip4Powershell }
-    if (!(Get-Module Recyle -ListAvailable)) { Install-Module Recyle }
 
     Import-Module 7Zip4Powershell
-    Import-Module Recyle
 }
 catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 
@@ -129,7 +127,7 @@ function Expand-Archives() {
     $archives = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.7z|\.gz|\.rar|\.zip' }
     
     if ($archives.Count -eq 0) {
-        Write-Console "Archive Mode skipped: No archive files found!"
+        Write-Console "Archive Mode skipped: No archive files found!" -MessageType Warning
         Write-Divider
         return
     }
@@ -171,29 +169,21 @@ function Expand-Archives() {
         }
 
         if ($DeleteArchive) {
-            Write-Console "Deleting source archive: $($archive.FullName)"
             $FileOperations.DeletionCandidates += $archive.FullName
-            Write-Divider
         }
     
-        if ($DeleteImage) {
-            # Wait for the completion of the conversion before deleting the source image
-            Write-Console "Conversion completed. Deleting source image: $($image.FullName)"           
-        
+        if ($DeleteImage) {       
             $escapedBaseName = $image.BaseName -replace '\[.*\]', '.*'
             $pattern = "^$escapedBaseName.*\.(bin|cue|gdi|iso|raw)$"
         
-            Write-Console "Constructed pattern: $pattern"
-        
-            # Delete corresponding .bin, .cue, and .iso files
             $matchingFiles = Get-ChildItem -Path $image.Directory.FullName -Filter "*.*" | Where-Object { $_.Name -match $pattern }
         
             foreach ($matchingFile in $matchingFiles) {
-                Write-Console "Deleting corresponding file: $($matchingFile.FullName)"
                 $FileOperations.DeletionCandidates += $matchingFile.FullName
             }
-        
-            Write-Console "Source image and corresponding files deleted."
+            Write-Divider
+            Write-Console "-DeleteArchive passed!" -MessageType Warning
+            Write-Console "Source archives added to deletion candidates." -MessageType Warning
             Write-Divider
         }        
         
@@ -211,6 +201,12 @@ function Compress-Images() {
     Write-Divider -Strong
     $images = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.cue|\.gdi|\.iso' }
 
+    if ($images.Count -eq 0) {
+        Write-Console "Image Mode skipped: No image files found!" -MessageType Warning
+        Write-Divider
+        return
+    }
+
     foreach ($image in $images) {
         $chdFilePath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
         $resolvedPath = (Resolve-Path -Path `"$chdFilePath`" -ErrorAction SilentlyContinue)?.Path
@@ -224,7 +220,8 @@ function Compress-Images() {
             $relativePath = (Resolve-Path -Path $chdFilePath -Relative).Path
             $overwrite = $null
             while ($overwrite -notin @('Y', 'N')) {
-                $overwrite = Read-Console "File .\$($relativePath) already exists. Do you want to overwrite?"
+                Write-Console
+                $overwrite = Read-Console "File .\$($relativePath) already exists. Do you want to overwrite?" -Prompt YN -MessageType Warning
                 $overwrite = $overwrite.ToUpper()
             }
 
@@ -248,25 +245,17 @@ function Compress-Images() {
         $FileOperations.CHDFileList += $resolvedPath
         $FileOperations.TotalFileConversions++; $FileOperations.TotalFileOperations++
 
-        if ($DeleteImage) {
-            # Wait for the completion of the conversion before deleting the source image
-            Write-Console "Conversion completed. Deleting source image: $($image.FullName)"           
-            
+        if ($DeleteImage) {     
             $baseName = $image.BaseName -replace '[^\w\-\. ]', '*'
-            Write-Console "Sanitized base name: $baseName"
-            
+
             # Delete corresponding files excluding .chd
             $matchingFiles = Get-ChildItem -LiteralPath $image.Directory.FullName -File -Recurse -Exclude "*.chd" |
                              Where-Object { $_.BaseName -like "$($baseName)*" -and $_.Extension -notin ".chd" }
             
             foreach ($matchingFile in $matchingFiles) {
-                Write-Console "Deleting corresponding file: $($matchingFile.FullName)"
                 $FileOperations.DeletionCandidates += $matchingFile.FullName
                 $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
             }
-            
-            Write-Console "Source image and corresponding files deleted."
-            Write-Divider
         }        
         
     }
@@ -281,7 +270,7 @@ function Remove-DeletionCandidates() {
     Write-Divider
     
     foreach ($candidate in $FileOperations.DeletionCandidates) {
-        $validInput = false
+        $validInput = $false
         
         do {
             if ($userChoice -ne 'A') {
@@ -295,12 +284,12 @@ function Remove-DeletionCandidates() {
             switch ($userChoice.ToUpper()) {
                 'Y' { 
                     Write-Console "Deleting $candidate"
-                    Remove-ItemSafely -Path $candidate -DeletePermanently:$false
+                    Remove-ItemSafely -Path $candidate
                     $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
                 }
                 'A' { 
                     Write-Console "Deleting $candidate"
-                    Remove-ItemSafely -Path $candidate -DeletePermanently:$false
+                    Remove-ItemSafely -Path $candidate
                     $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
                     break
                 }
@@ -384,7 +373,7 @@ function Optimize-PSX() {
                 Get-Process | Where-Object { $_.ProcessName -like '7z*' } | Stop-Process -Force
             }
         } else {
-            Write-Console "Archive Mode Skipped: User declined archive mode."
+            Write-Console "Archive Mode Skipped: User declined archive mode." -MessageType Warning
         }
 
         Compress-Images(Get-Location)

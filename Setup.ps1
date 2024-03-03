@@ -90,8 +90,12 @@ function Setup {
     Invoke-Command ".\scripts\Install-Packages-Chocolatey.ps1"
     Invoke-Command ".\scripts\Install-Packages-Winget.ps1"
 
-    foreach ($script in $scripts) {
-        Invoke-Script -ScriptName $script.Name -Argument $script.Argument
+    if ($scripts) {
+        foreach ($script in $scripts) {
+            Invoke-Script -ScriptName $script.Name -Argument $script.Argument
+        }
+    } else {
+        Write-Console "No scripts to execute."
     }
 }
 

@@ -84,15 +84,37 @@
 function Read-Console() {
     param (
         [string]$Text,
-        [string]$Prompt
+        [ValidateSet("YAND", "YN")]
+        [string]$Prompt,
+        [ValidateSet("Info", "Warning", "Error")]
+        [string]$MessageType = "Info"
     )
 
-    if ($Prompt) {
-        $response = Read-Host -Prompt "$Text $Prompt"
-    } 
-    else {
-        $response = Read-Host -Prompt "$Text (Y)es / (A)ccept All / (N)o / (D)ecline All"
+    # Define color based on MessageType
+    $foregroundColor = switch ($MessageType) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        Default   { "White" }
     }
+
+    # Display the prompt with formatting
+    Write-Host $Text -NoNewline -ForegroundColor $foregroundColor
+
+    $defaultPrompt = switch ($Prompt) {
+        "YAND" { "(Y)es / (A)ccept All / (N)o / (D)ecline All" }
+        "YN"   { "(Y)es / (N)o" }
+        Default { "" }
+    }
+
+    if ($defaultPrompt -ne "") {
+        Write-Host " $defaultPrompt" -ForegroundColor $foregroundColor
+    }
+
+    Write-Host ">> " -ForegroundColor $foregroundColor -NoNewline
+    $Host.UI.RawUI.ForegroundColor = $foregroundColor
+    $response = Read-Host
+    $Host.UI.RawUI.ForegroundColor = "White"
 
     return $response
 }
@@ -105,17 +127,16 @@ function Write-Console() {
         [switch]$NoLog
     )
 
-    # Set the color based on the message type
-    switch ($MessageType) {
-        "Info" { $color = "White" }
-        "Warning" { $color = "Yellow" }
-        "Error" { $color = "Red" }
-        default { $color = "White" }
+    $foregroundColor = switch ($MessageType) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        Default   { "White" }
     }
 
     # Format the message and write it to the console
     $Text = ">> $Text"
-    Write-Host $Text -ForegroundColor $color
+    Write-Host $Text -ForegroundColor $foregroundColor
 
     # If logging is enabled, write the message to the log file
     if (!$NoLog) { Write-Log -Message $Text }
@@ -150,3 +171,8 @@ function Write-Log() {
 
     Add-Content -Path $logPath -Value $logEntry
 }
+
+Export-ModuleMember -Function Read-Console
+Export-ModuleMember -Function Write-Console
+Export-ModuleMember -Function Write-Divider
+Export-ModuleMember -Function Write-Log
