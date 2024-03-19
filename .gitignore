@@ -1,2 +1,4 @@
 ext/*
+vault/*
 *.log
+scripts/lib/logs/Write-Log.log

@@ -1,3 +1,2 @@
 7zip
 filezilla
-speedtest-cli

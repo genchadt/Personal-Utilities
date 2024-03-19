@@ -14,7 +14,7 @@ This repository contains a collection of personal utilities that I find useful i
 
 - Description: Script to automatically add a series of paths to the system environment variables.
 
-### 3. Block-CurrentDirectory-WindowsFirewall.ps1
+### 3. Block-CurrentDirectoryFW.ps1
 
 - Description: Script to block the current directory using Windows Firewall.
 

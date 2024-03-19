@@ -14,8 +14,9 @@ param (
 # Imports
 ###############################################
 
-. "$PSScriptRoot\lib\ErrorHandling.ps1"
-. "$PSScriptRoot\lib\TextHandling.ps1"
+Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
+Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
+Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
 
 ###############################################
 # Main Loop
