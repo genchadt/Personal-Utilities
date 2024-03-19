@@ -8,9 +8,9 @@
 # Imports
 ###############################################
 
-. "$PSScriptRoot\lib\ErrorHandling.ps1"
-. "$PSScriptRoot\lib\TextHandling.ps1"
-. "$PSScriptRoot\lib\SysOperation.ps1"
+Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
+Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
+Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
 
 Write-Console "Starting font installations..."
 $fontsFolder = (New-Object -ComObject Shell.Application).Namespace(0x14)
