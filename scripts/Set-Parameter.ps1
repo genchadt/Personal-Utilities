@@ -4,8 +4,8 @@
 
 param (
     [Alias("p")][String[]]$Path = $PWD,
-    [Alias("a")][String[]]$Add,    # Attributes to add
-    [Alias("r")][String[]]$Remove, # Attributes to remove
+    [Alias("a")][String[]]$Add = @(),
+    [Alias("r")][String[]]$Remove = @(),
     [Switch]$Recurse,
     [Switch]$Force,
     [Switch]$NoLog
@@ -15,8 +15,6 @@ param (
 # Imports
 ###############################################
 
-# Assuming necessary modules are located in the same directory as this script.
-# Adjust paths as necessary.
 Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
 Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
 Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
@@ -32,24 +30,41 @@ function Add-RemoveFileAttribute {
         [String[]]$RemoveAttributes
     )
 
+    $AddAttributes = @($AddAttributes)
+    $RemoveAttributes = @($RemoveAttributes)
+
+    $validAttributes = [Enum]::GetNames([System.IO.FileAttributes])
+    $AddAttributes = $AddAttributes | ForEach-Object { $_.TrimStart('-') } | Where-Object { $validAttributes -contains $_ }
+    $RemoveAttributes = $RemoveAttributes | ForEach-Object { $_.TrimStart('-') } | Where-Object { $validAttributes -contains $_ }
+
     foreach ($attr in $AddAttributes) {
-        $attribute = [System.IO.FileAttributes]::"$attr"
-        $Item.Attributes = $Item.Attributes -bor $attribute
-        Log-AttributeChange "Added '$attr' attribute to $($Item.FullName)."
+        try {
+            $attribute = [System.IO.FileAttributes]::"$attr"
+            $Item.Attributes = $Item.Attributes -bor $attribute
+            LogAttributeChange "Successfully added '$attr' attribute to $($Item.FullName)."
+        }
+        catch {
+            LogAttributeChange "Failed to add '$attr' attribute to $($Item.FullName): $_"
+        }
     }
 
     foreach ($attr in $RemoveAttributes) {
-        $attribute = [System.IO.FileAttributes]::"$attr"
-        $Item.Attributes = $Item.Attributes -band (-bnot $attribute)
-        Log-AttributeChange "Removed '$attr' attribute from $($Item.FullName)."
+        try {
+            $attribute = [System.IO.FileAttributes]::"$attr"
+            $Item.Attributes = $Item.Attributes -band (-bnot $attribute)
+            LogAttributeChange "Successfully removed '$attr' attribute from $($Item.FullName)."
+        }
+        catch {
+            LogAttributeChange "Failed to remove '$attr' attribute from $($Item.FullName): $_"
+        }
     }
 }
 
-function Log-AttributeChange {
+function LogAttributeChange {
     param (
         [Parameter(Mandatory=$true)][string]$Message
     )
-    if (-not $Global:NoLog) { Write-Host $Message } # Consider using a more sophisticated logging mechanism.
+    if (-not $Global:NoLog) { Write-Log $Message }
 }
 
 ###############################################
