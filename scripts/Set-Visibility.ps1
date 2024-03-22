@@ -3,11 +3,13 @@
 ###############################################
 
 param (
-    [alias("p")][string[]]$Path = $PWD,
-    [alias("h")][switch]$Hidden,
-    [alias("v")][switch]$Visible,
-    [alias("r")][switch]$Recurse,
-    [alias("f")][switch]$Force
+    [Alias("p")][String[]]$Path = $PWD,
+    [Alias("h")][Switch]$Hidden,
+    [Alias("v")][Switch]$Visible,
+    [Alias("r")][Switch]$Recurse,
+    [Alias("f")][Switch]$Force,
+    [Alias("rm")][Switch]$RemoveSystem,
+    [Alias("s")][Switch]$NoLog
 )
 
 ###############################################
@@ -22,79 +24,69 @@ Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
 # Main Loop
 ###############################################
 
-if ($args.Count -eq 0 -and !$Force) {
+if (-not $Path -or ($Path.Count -eq 0 -and -not $Force)) {
     Write-Error "Please specify at least one path or use the -Force parameter."
+    return
+}
+
+if ($Hidden -and $Visible) {
+    Write-Error "Cannot specify both -Hidden and -Visible flags."
+    return
+}
+
+function Set-FileAttribute {
+    param (
+        [Parameter(Mandatory = $true)][String]$ItemPath,
+        [Parameter(Mandatory = $true)][Bool]$Hidden,
+        [Parameter(Mandatory = $true)][Bool]$Visible,
+        [Parameter(Mandatory = $true)][Bool]$RemoveSystem
+    )
+
+    $item = Get-Item -LiteralPath $ItemPath -Force
+    if ($null -eq $item) {
+        Write-Warning "Item at path '$ItemPath' could not be found."
+        return
+    }
+
+    $currentAttributes = $item.Attributes
+    $isSystem = $currentAttributes -band [System.IO.FileAttributes]::System
+    if (-not $NoLog) { Write-Log "Current attributes for $ItemPath" + ": " + "$currentAttributes. Is system: $isSystem" }
+
+    if ($isSystem -and $RemoveSystem) {
+        $newAttributes = $currentAttributes -band (-bnot [System.IO.FileAttributes]::System)
+        $item.Attributes = $newAttributes
+        if (-not $NoLog) { Write-Log "Removed 'System' attribute. New attributes: $newAttributes" }
+    }
+
+    if ($Hidden) {
+        $item.Attributes = $item.Attributes -bor [System.IO.FileAttributes]::Hidden
+        if (-not $NoLog) { Write-Log "Set 'Hidden' attribute." }
+    } elseif ($Visible) {
+        $item.Attributes = $item.Attributes -band (-bnot [System.IO.FileAttributes]::Hidden)
+        if (-not $NoLog) { Write-Log "Removed 'Hidden' attribute." }
+    }
+
+    if ($isSystem -and !$RemoveSystem) {
+        $item.Attributes = $item.Attributes -bor [System.IO.FileAttributes]::System
+        if (-not $NoLog) { Write-Log "Re-added 'System' attribute." }
+    }
 }
 
 try {
-    # Check if both -Hidden and -Visible are specified
-    if ($Hidden -and $Visible) {
-        throw "Cannot specify both -Hidden and -Visible flags."
-    }
-
-    # Check if the script is run with -Force parameter
-    if ($Force) {
-        $ForcePath = $PWD
-        if ($Hidden) {
-            # Set visibility of files and subdirectories to hidden
-            Get-ChildItem -Path $ForcePath -Recurse -Force | ForEach-Object {
-                $_.Attributes += "Hidden"  # Add Hidden attribute
-            }
+    $processPaths = $Force ? @($PWD) : $Path
+    foreach ($itemPath in $processPaths) {
+        if (-not (Test-Path $itemPath)) {
+            throw "Path '$itemPath' does not exist."
         }
-        else {
-            # Set visibility of files and subdirectories to visible
-            Get-ChildItem -Path $ForcePath -Recurse -Force | ForEach-Object {
-                $_.Attributes = $_.Attributes -bxor [System.IO.FileAttributes]::Hidden  # Remove Hidden attribute
-            }
-        }
-    }    
-    else {
-        # Iterate through each path
-        foreach ($itemPath in $Path) {
-            # Check if the path exists
-            if (-not (Test-Path $itemPath)) {
-                throw "Path '$itemPath' does not exist."
-            }
 
-            # Check if the path points to a single file
-            if (Test-Path $itemPath -PathType Container) {
-                # Toggle visibility of the file if $Hidden or $Visible is not specified
-                if (-not ($Hidden -or $Visible)) {
-                    $currentAttributes = (Get-Item $itemPath -Force).Attributes
-                    $newAttributes = $currentAttributes -bxor [System.IO.FileAttributes]::Hidden  # Toggle the Hidden attribute
-                    Set-ItemProperty -Path $itemPath -Name Attributes -Value $newAttributes
-                } elseif ($Hidden) {
-                    # Set visibility of file to hidden
-                    $newAttributes = (Get-Item $itemPath -Force).Attributes -bor [System.IO.FileAttributes]::Hidden
-                    Set-ItemProperty -Path $itemPath -Name Attributes -Value $newAttributes
-                } elseif ($Visible) {
-                    # Set visibility of file to visible
-                    $newAttributes = (Get-Item $itemPath -Force).Attributes -band (-bnot [System.IO.FileAttributes]::Hidden)
-                    Set-ItemProperty -Path $itemPath -Name Attributes -Value $newAttributes
-                }
+        $item = Get-Item $itemPath -Force
+        if ($item -is [System.IO.DirectoryInfo] -and ($Hidden -or $Visible)) {
+            Get-ChildItem -Path $itemPath -Recurse:$Recurse -Force | ForEach-Object {
+                Set-FileAttribute -ItemPath $_.FullName -Hidden $Hidden -Visible $Visible -RemoveSystem $RemoveSystem
             }
-            else {
-                if ($Hidden -or $Visible) {
-                    # If it's a directory and -Hidden or -Visible are specified, recursively set all files and subdirectories of the path to the same visibility (including the path itself)
-                    if ($Recurse) {
-                        Get-ChildItem -Path $itemPath -Recurse -Force | ForEach-Object {
-                            $currentAttributes = (Get-Item $_.FullName -Force).Attributes
-                            $newAttributes = $currentAttributes -bxor [System.IO.FileAttributes]::Hidden  # Toggle the Hidden attribute
-                            Set-ItemProperty -Path $_.FullName -Name Attributes -Value $newAttributes
-                        }
-                    }
-                    else {
-                        Get-ChildItem -Path $itemPath -Force | ForEach-Object {
-                            $currentAttributes = (Get-Item $_.FullName -Force).Attributes
-                            $newAttributes = $currentAttributes -bxor [System.IO.FileAttributes]::Hidden  # Toggle the Hidden attribute
-                            Set-ItemProperty -Path $_.FullName -Name Attributes -Value $newAttributes
-                        }
-                    }
-                }
-            }
+            Set-FileAttribute -ItemPath $itemPath -Hidden $Hidden -Visible $Visible -RemoveSystem $RemoveSystem
+        } elseif ($item -is [System.IO.FileInfo]) {
+            Set-FileAttribute -ItemPath $itemPath -Hidden $Hidden -Visible $Visible -RemoveSystem $RemoveSystem
         }
     }
-} catch {
-    # Handle errors using ErrorHandling function
-    ErrorHandling -ErrorMessage $_ -StackTraceValue $_.StackTrace
-}
+} catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
