@@ -4,20 +4,13 @@
 # IDs must be explicitly correct!
 # i.e.. "Microsoft.PowerToys" not "PowerToys"
 ###############################################
-# Optional packages
-#
-# Uncomment line(s) to install
-###############################################
-#Codeusa.BorderlessGaming               # Borderless Gaming (for games without native borderless window support)
-#Ookla.Speedtest.CLI                    # Ookla Speedtest CLI interface. Probably better to just use speed.cloudflare.com or testmy.net
-#Microsoft.VisualStudioCode.Insiders    # VS Code Insiders build
 
 ###############################################
 # Core Utilities
 ###############################################
 AutoHotkey.AutoHotkey                   # AutoHotkey
-Chocolatey.Chocolatey
-flux.flux
+Chocolatey.Chocolatey                   # Chocolatey Package Manager
+flux.flux                               # Flux
 SomePythonThings.WingetUIStore          # WingetUI/UnigetUI
 
 ###############################################
@@ -25,6 +18,7 @@ SomePythonThings.WingetUIStore          # WingetUI/UnigetUI
 ###############################################
 Git.Git                                 # Git
 Microsoft.VisualStudioCode              # VS Code
+#Microsoft.VisualStudioCode.Insiders    # VS Code Insiders build
 Neovim.Neovim                           # Neovim
 Python.Python.3.12                      # Python 3.12
 
@@ -32,6 +26,12 @@ Python.Python.3.12                      # Python 3.12
 # File Management and Sharing
 ###############################################
 Google.Drive                            # Google Drive
+
+###############################################
+# Gaming
+###############################################
+#Codeusa.BorderlessGaming               # Borderless Gaming (for games without native borderless window support)
+Valve.Steam                             # Steam
 
 ###############################################
 # Internet and Networking
@@ -60,4 +60,5 @@ Microsoft.Sysinternals.ProcessExplorer  # Process Explorer
 Microsoft.Sysinternals.TCPView          # TCPView
 Microsoft.WindowsTerminal
 NirSoft.NirCmd                          # NirCmd
+#Ookla.Speedtest.CLI                    # Ookla Speedtest CLI interface. Probably better to just use speed.cloudflare.com or testmy.net
 WiresharkFoundation.Wireshark           # Wireshark
