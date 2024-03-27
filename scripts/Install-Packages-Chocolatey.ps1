@@ -1,10 +1,22 @@
+###############################################
+# Imports
+###############################################
+
+Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
+Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
+Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
+
+###############################################
+# Main Loop
+###############################################
+
 param (
     [string]$packagesFile = ".\config\packages_choco.txt",
     [switch]$force
 )
 
 try {
-    $packages = Get-Content $packagesFile -ErrorAction Stop
+    $packages = Read-ConfigFile -FilePath $packagesFile
 
     foreach ($package in $packages) {
         if ($package.StartsWith("#")) {
@@ -17,7 +29,5 @@ try {
 
     Write-Host "Chocolatey packages installation complete."
 } catch {
-    Write-Host "An error occurred: $_"
-    Add-Content -Path "errorLog.txt" -Value ("[" + (Get-Date) + "] Error: $_")
-    exit 1
+    ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
 }
