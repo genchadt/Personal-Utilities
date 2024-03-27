@@ -7,6 +7,10 @@ try {
     $packages = Get-Content $packagesFile -ErrorAction Stop
 
     foreach ($package in $packages) {
+        if ($package.StartsWith("#")) {
+            continue
+        }
+
         $installCommand = "winget install $package -e -i"
         if ($force) {
             $installCommand += " --force"

@@ -7,6 +7,10 @@ try {
     $packages = Get-Content $packagesFile -ErrorAction Stop
 
     foreach ($package in $packages) {
+        if ($package.StartsWith("#")) {
+            continue
+        }
+
         $installCommand = if ($force) { "choco install $package -y"} else { "choco install $package" }
         Invoke-Expression $installCommand
     }
