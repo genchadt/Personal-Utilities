@@ -1,20 +1,63 @@
-AutoHotkey.AutoHotkey
+###############################################
+# Winget Package List
+# 
+# IDs must be explicitly correct!
+# i.e.. "Microsoft.PowerToys" not "PowerToys"
+###############################################
+# Optional packages
+#
+# Uncomment line(s) to install
+###############################################
+#Codeusa.BorderlessGaming               # Borderless Gaming (for games without native borderless window support)
+#Ookla.Speedtest.CLI                    # Ookla Speedtest CLI interface. Probably better to just use speed.cloudflare.com or testmy.net
+#Microsoft.VisualStudioCode.Insiders    # VS Code Insiders build
+
+###############################################
+# Core Utilities
+###############################################
+AutoHotkey.AutoHotkey                   # AutoHotkey
 Chocolatey.Chocolatey
-eloston.ungoogled-chromium
 flux.flux
-Git.Git
-Microsoft.Sysinternals.ProcessExplorer
-Microsoft.Sysinternals.TCPView
-Microsoft.VisualStudioCode
-Mozilla.Firefox
-MullvadVPN.MullvadVPN
-Neovim.Neovim
-Ookla.Speedtest.CLI
-PuTTY.PuTTY
-Python.Python.3.12
-qBittorrent.qBittorrent
-SomePythonThings.WingetUIStore
-Spotify.Spotify
-SumatraPDF.SumatraPDF
-WiresharkFoundation.Wireshark
-Zoom.Zoom
+SomePythonThings.WingetUIStore          # WingetUI/UnigetUI
+
+###############################################
+# Development Tools inc. all programming languages on winget
+###############################################
+Git.Git                                 # Git
+Microsoft.VisualStudioCode              # VS Code
+Neovim.Neovim                           # Neovim
+Python.Python.3.12                      # Python 3.12
+
+###############################################
+# File Management and Sharing
+###############################################
+Google.Drive                            # Google Drive
+
+###############################################
+# Internet and Networking
+###############################################
+eloston.ungoogled-chromium              # Ungoogled Chromium
+Mozilla.Firefox                         # Firefox
+MullvadVPN.MullvadVPN                   # Mullvad VPN
+qBittorrent.qBittorrent                 # qBittorrent
+Zoom.Zoom                               # Zoom
+
+###############################################
+# Multimedia
+###############################################
+Spotify.Spotify                         # Spotify
+
+###############################################
+# Productivity and Office
+###############################################
+SumatraPDF.SumatraPDF                   # SumatraPDF
+
+###############################################
+# System Tools
+###############################################
+Microsoft.PowerToys                     # PowerToys
+Microsoft.Sysinternals.ProcessExplorer  # Process Explorer
+Microsoft.Sysinternals.TCPView          # TCPView
+Microsoft.WindowsTerminal
+NirSoft.NirCmd                          # NirCmd
+WiresharkFoundation.Wireshark           # Wireshark
