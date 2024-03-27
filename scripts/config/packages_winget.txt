@@ -1,6 +1,6 @@
 ###############################################
 # Winget Package List
-# 
+#...............................................
 # IDs must be explicitly correct!
 # i.e.. "Microsoft.PowerToys" not "PowerToys"
 ###############################################
