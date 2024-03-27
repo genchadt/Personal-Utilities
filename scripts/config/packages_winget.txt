@@ -53,6 +53,11 @@ Spotify.Spotify                         # Spotify
 SumatraPDF.SumatraPDF                   # SumatraPDF
 
 ###############################################
+# Security and Privacy
+###############################################
+Bitwarden.Bitwarden                     # Bitwarden
+
+###############################################
 # System Tools
 ###############################################
 Microsoft.PowerToys                     # PowerToys
