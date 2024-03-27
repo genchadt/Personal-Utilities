@@ -14,7 +14,7 @@ flux.flux                               # Flux
 SomePythonThings.WingetUIStore          # WingetUI/UnigetUI
 
 ###############################################
-# Development Tools inc. all programming languages on winget
+# Development Tools
 ###############################################
 Git.Git                                 # Git
 Microsoft.VisualStudioCode              # VS Code
