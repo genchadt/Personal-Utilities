@@ -6,5 +6,6 @@
 ###############################################
 
 # Name              Url                                                                 Comments
+DaVinci Resolve     https://www.blackmagicdesign.com/products/davinciresolve            Free video editing software
 Equalizer APO       https://sourceforge.net/projects/equalizerapo/                      Equalizer software for Windows
 Peace Equalizer     https://sourceforge.net/projects/peace-equalizer-apo-extension/     GUI for Equalizer APO
