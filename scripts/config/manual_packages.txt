@@ -1,0 +1,10 @@
+###############################################
+# Manual Package List
+#...............................................
+# This list contains packages that are not available
+# in Chocolatey or Winget or any other package manager.
+###############################################
+
+# Name              Url                                                                 Comments
+Equalizer APO       https://sourceforge.net/projects/equalizerapo/                      Equalizer software for Windows
+Peace Equalizer     https://sourceforge.net/projects/peace-equalizer-apo-extension/     GUI for Equalizer APO
