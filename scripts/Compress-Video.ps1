@@ -36,7 +36,25 @@
    Console output with status messages and compressed video files in the respective folders.
 #>
 
-function Compress-Video {
+###############################################
+# Imports
+###############################################
+
+Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
+Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
+Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
+
+###############################################
+# Objects
+###############################################
+
+$VideoExtensions = @('.mp4', '.avi', '.mkv', '.mov')
+
+###############################################
+# Parameters
+###############################################
+
+{
     param(
         [string]$VideoPath,
         [switch]$DeleteSource
@@ -63,7 +81,7 @@ function Compress-Video {
     }
 }
 
-function Process-Folder {
+function Use-Compression {
     param(
         [string]$FolderPath = (Get-Location),
         [switch]$DeleteSourceFiles
@@ -84,4 +102,4 @@ function Process-Folder {
     }
 }
 
-Process-Folder -DeleteSourceFiles:$false
+if ($MyInvocation.InvocationName -ne '.') { Use-Compression }
