@@ -47,6 +47,7 @@ eloston.ungoogled-chromium              # Ungoogled Chromium
 Mozilla.Firefox                         # Firefox
 MullvadVPN.MullvadVPN                   # Mullvad VPN
 qBittorrent.qBittorrent                 # qBittorrent
+#qBittorrent.qBittorrent.Beta           # qBittorrent Beta
 Zoom.Zoom                               # Zoom
 
 ###############################################
