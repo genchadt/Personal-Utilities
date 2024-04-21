@@ -71,7 +71,8 @@ Bitwarden.Bitwarden                     # Bitwarden
 Microsoft.PowerToys                     # PowerToys
 Microsoft.Sysinternals.ProcessExplorer  # Process Explorer
 Microsoft.Sysinternals.TCPView          # TCPView
-Microsoft.WindowsTerminal
+Microsoft.WindowsTerminal               # Windows Terminal
 NirSoft.NirCmd                          # NirCmd
 #Ookla.Speedtest.CLI                    # Ookla Speedtest CLI interface. Probably better to just use speed.cloudflare.com or testmy.net
+Safing.Portmaster                       # Portmaster
 WiresharkFoundation.Wireshark           # Wireshark
