@@ -68,6 +68,7 @@ Bitwarden.Bitwarden                     # Bitwarden
 ###############################################
 # System Tools
 ###############################################
+alexx2000.DoubleCommander               # Double Commander
 Microsoft.PowerToys                     # PowerToys
 Microsoft.Sysinternals.ProcessExplorer  # Process Explorer
 Microsoft.Sysinternals.TCPView          # TCPView
