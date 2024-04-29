@@ -3,77 +3,82 @@
 #...............................................
 # IDs must be explicitly correct!
 # i.e.. "Microsoft.PowerToys" not "PowerToys"
+# Lines beginning with "#" are ignored!
 ###############################################
 
 ###############################################
 # Core Utilities
 ###############################################
-AutoHotkey.AutoHotkey                   # AutoHotkey
-Chocolatey.Chocolatey                   # Chocolatey Package Manager
-flux.flux                               # Flux
-SomePythonThings.WingetUIStore          # WingetUI/UnigetUI
+### Winget ID ###                       ### Package Name ###            ### URL ###
+AutoHotkey.AutoHotkey                   # AutoHotkey                    https://www.autohotkey.com
+Chocolatey.Chocolatey                   # Chocolatey Package Manager    https://chocolatey.org
+flux.flux                               # Flux                          https://github.com/fluxcd/flux2
+SomePythonThings.WingetUIStore          # WingetUIStore                 https://github.com/SomePythonThings/WingetUIStore
 
 ###############################################
 # Audio and Video
 ###############################################
-#Audacity.Audacity                      # Audacity
-Gyan.FFmpeg                             # FFmpeg
-VideoLAN.VLC                            # VLC
+#Audacity.Audacity                      # Audacity                      https://www.audacityteam.org
+Gyan.FFmpeg                             # FFmpeg                        https://ffmpeg.org
+VideoLAN.VLC                            # VLC                           https://www.videolan.org/vlc
 
 ###############################################
 # Development Tools
 ###############################################
-Git.Git                                 # Git
-Microsoft.VisualStudioCode              # VS Code
+Git.Git                                 # Git                           https://git-scm.com
+Microsoft.VisualStudioCode              # VS Code                       https://github.com/microsoft/vscode
 #Microsoft.VisualStudioCode.Insiders    # VS Code Insiders build
-Neovim.Neovim                           # Neovim
-Python.Python.3.12                      # Python 3.12
+Neovim.Neovim                           # Neovim                        https://github.com/neovim/neovim
+Python.Python.3.12                      # Python 3.12                   https://www.python.org
 
 ###############################################
 # File Management and Sharing
 ###############################################
-Google.Drive                            # Google Drive
+Google.Drive                            # Google Drive                  https://drive.google.com
 
 ###############################################
 # Gaming
 ###############################################
-#Codeusa.BorderlessGaming               # Borderless Gaming (for games without native borderless window support)
-Valve.Steam                             # Steam
+#Codeusa.BorderlessGaming               # Borderless Gaming             https://github.com/Codeusa/Borderless-Gaming
+Valve.Steam                             # Steam                         https://store.steampowered.com
 
 ###############################################
 # Internet and Networking
 ###############################################
-eloston.ungoogled-chromium              # Ungoogled Chromium
-Mozilla.Firefox                         # Firefox
-MullvadVPN.MullvadVPN                   # Mullvad VPN
-qBittorrent.qBittorrent                 # qBittorrent
+eloston.ungoogled-chromium              # Ungoogled Chromium            https://github.com/Eloston/ungoogled-chromium
+Mozilla.Firefox                         # Firefox                       https://www.mozilla.org
+MullvadVPN.MullvadVPN                   # Mullvad VPN                   https://mullvad.net
+qBittorrent.qBittorrent                 # qBittorrent                   https://github.com/qbittorrent/qBittorrent
 #qBittorrent.qBittorrent.Beta           # qBittorrent Beta
-Zoom.Zoom                               # Zoom
+Zoom.Zoom                               # Zoom                          https://zoom.us
 
 ###############################################
 # Multimedia
 ###############################################
-Spotify.Spotify                         # Spotify
+Spotify.Spotify                         # Spotify                       https://www.spotify.com
 
 ###############################################
 # Productivity and Office
 ###############################################
-SumatraPDF.SumatraPDF                   # SumatraPDF
+SumatraPDF.SumatraPDF                   # SumatraPDF                    https://github.com/sumatrapdfreader/sumatrapdf
 
 ###############################################
 # Security and Privacy
 ###############################################
-Bitwarden.Bitwarden                     # Bitwarden
+Bitwarden.Bitwarden                     # Bitwarden                     https://github.com/bitwarden/desktop
 
 ###############################################
 # System Tools
 ###############################################
-alexx2000.DoubleCommander               # Double Commander
-Microsoft.PowerToys                     # PowerToys
-Microsoft.Sysinternals.ProcessExplorer  # Process Explorer
-Microsoft.Sysinternals.TCPView          # TCPView
-Microsoft.WindowsTerminal               # Windows Terminal
-NirSoft.NirCmd                          # NirCmd
-#Ookla.Speedtest.CLI                    # Ookla Speedtest CLI interface. Probably better to just use speed.cloudflare.com or testmy.net
-Safing.Portmaster                       # Portmaster
-WiresharkFoundation.Wireshark           # Wireshark
+ajeetdsouza.zoxide                      # Zoxide                        https://github.com/ajeetdsouza/zoxide
+alexx2000.DoubleCommander               # Double Commander              https://github.com/alexx2000/doublecmd
+fzf                                     # fzf                           https://github.com/junegunn/fzf
+gokcehan.lf                             # lf (Terminal File Manager)    https://github.com/gokcehan/lf
+Microsoft.PowerToys                     # PowerToys                     https://github.com/microsoft/PowerToys
+Microsoft.Sysinternals.ProcessExplorer  # Process Explorer              https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer
+Microsoft.Sysinternals.TCPView          # TCPView                       https://learn.microsoft.com/en-us/sysinternals/downloads/tcpview
+Microsoft.WindowsTerminal               # Windows Terminal              https://github.com/microsoft/terminal
+NirSoft.NirCmd                          # NirCmd                        https://github.com/nirsoft/NirCmd
+#Ookla.Speedtest.CLI                    # Ookla Speedtest CLI tool      https://github.com/sivel/speedtest-cli
+Safing.Portmaster                       # Portmaster                    https://github.com/safing/portmaster
+WiresharkFoundation.Wireshark           # Wireshark                     https://github.com/Wireshark/Wireshark
