@@ -1,6 +1,6 @@
 function Get-CurrentDirectorySize {
-    $initialDirectorySizeBytes = (Get-ChildItem -Path . -Recurse -Force | Measure-Object -Property Length -Sum).Sum
-    return $initialDirectorySizeBytes
+    $initial_directory_size_bytes = (Get-ChildItem -Path . -Recurse -Force | Measure-Object -Property Length -Sum).Sum
+    return $initial_directory_size_bytes
 }
 
 function Invoke-Command {
@@ -31,19 +31,18 @@ function Remove-ItemSafely {
         if ($PSCmdlet.ShouldProcess($Path, "Move to Recycle Bin")) {
             try {
                 # Ensure the path resolves to an item
-                $resolvedPath = Resolve-Path -Path $Path -ErrorAction Stop
-                $item = Get-Item -LiteralPath $resolvedPath.Path -ErrorAction Stop
+                $resolved_path = Resolve-Path -Path $Path -ErrorAction Stop
+                $item = Get-Item -LiteralPath $resolved_path.Path -ErrorAction Stop
 
                 $shell = New-Object -ComObject "Shell.Application"
-                $recycleBin = $shell.Namespace(0xA) # 0xA is the recycle bin's shell ID
                 $folder = $shell.Namespace($item.Directory.FullName)
                 $file = $folder.ParseName($item.Name)
 
                 if ($null -ne $file) {
                     $file.InvokeVerb("delete")
-                    Write-Output "Moved to Recycle Bin: $Path"
+                    Write-Output "Moved to Recycle Bin: $resolved_path.Path"
                 } else {
-                    Write-Error "Failed to locate item for Recycle Bin operation: $Path"
+                    Write-Error "Failed to locate item for Recycle Bin operation: $resolved_path.Path"
                 }
             } catch {
                 Write-Error "Error moving item to Recycle Bin: $_.Exception.Message"
