@@ -1,24 +1,24 @@
-function Backup-SystemPath {
-    $backupPath = Join-Path -Path $env:TEMP -ChildPath "PATH_Backup.reg"
-    reg export "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" $backupPath
-    Write-Host "System PATH backed up to $backupPath"
+function Backup-system_path {
+    $backup_path = Join-Path -Path $env:TEMP -ChildPath "PATH_Backup.reg"
+    reg export "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" $backup_path
+    Write-Host "System PATH backed up to $backup_path"
 }
 
-function Get-ValidDirectories {
+function Get-valid_directories {
     param (
         [string]$BaseDirectory,
         [string[]]$ExclusionList
     )
 
-    $allDirectories = Get-ChildItem -Path $BaseDirectory -Recurse -Directory | Select-Object -ExpandProperty FullName
+    $all_directories = Get-ChildItem -Path $BaseDirectory -Recurse -Directory | Select-Object -ExpandProperty FullName
 
-    $filteredDirectories = $allDirectories | Where-Object {
+    $filtered_directories = $all_directories | Where-Object {
         $path = $_
         $exclude = $ExclusionList | Where-Object { $path -like $_ }
         return -not $exclude
     }
 
-    return $filteredDirectories
+    return $filtered_directories
 }
 
 function Find-NonExistingAndDuplicatePaths {
@@ -26,29 +26,29 @@ function Find-NonExistingAndDuplicatePaths {
         [string[]]$Directories
     )
 
-    $systemPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine").ToLower().Split(';')
-    $validDirectories = @()
+    $system_path = [System.Environment]::GetEnvironmentVariable("Path", "Machine").ToLower().Split(';')
+    $valid_directories = @()
 
     foreach ($dir in $Directories) {
-        if ((Test-Path $dir) -and -not $systemPath.Contains($dir.ToLower())) {
-            $validDirectories += $dir
+        if ((Test-Path $dir) -and -not $system_path.Contains($dir.ToLower())) {
+            $valid_directories += $dir
         }
     }
 
-    return $validDirectories | Select-Object -Unique
+    return $valid_directories | Select-Object -Unique
 }
 
-function Add-PathsToSystemPath {
+function Add-PathsTosystem_path {
     param (
         [string[]]$PathsToAdd
     )
 
-    $currentSystemPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    $newPath = ($currentSystemPath.Split(';') + $PathsToAdd | Select-Object -Unique) -join ';'
+    $currentsystem_path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $new_path = ($currentsystem_path.Split(';') + $PathsToAdd | Select-Object -Unique) -join ';'
 
     $confirmation = Read-Host "Confirm adding specified paths to system PATH? [Y/N]"
     if ($confirmation -eq 'Y') {
-        [System.Environment]::SetEnvironmentVariable("Path", $newPath, "Machine")
+        [System.Environment]::SetEnvironmentVariable("Path", $new_path, "Machine")
         Write-Host "System PATH updated successfully."
     } else {
         Write-Host "Operation cancelled."
@@ -62,24 +62,24 @@ function Add-Paths {
     )
 
     # Backup system PATH variables
-    Backup-SystemPath
+    Backup-system_path
 
     # Initialize variables
-    $currentPath = Get-Item -LiteralPath $PSScriptRoot | Select-Object -ExpandProperty FullName
+    $current_path = Get-Item -LiteralPath $PSScriptRoot | Select-Object -ExpandProperty FullName
 
     # Get all directories excluding those in the exclusion list and subdirectories
-    $directories = Get-ValidDirectories -BaseDirectory $currentPath -ExclusionList $exclusionList
+    $directories = Get-valid_directories -BaseDirectory $current_path -ExclusionList $exclusionList
 
     # Filter out directories that already exist in the system PATH and validate existence
-    $validDirectories = Find-NonExistingAndDuplicatePaths -Directories $directories
+    $valid_directories = Find-NonExistingAndDuplicatePaths -Directories $directories
 
     # Display paths to the user for review
     Write-Host "Paths to be added to PATH:"
-    $validDirectories | ForEach-Object { Write-Output $_ }
+    $valid_directories | ForEach-Object { Write-Output $_ }
 
     # Prompt user to add paths
-    if ($validDirectories.Count -gt 0) {
-        Add-PathsToSystemPath -PathsToAdd $validDirectories
+    if ($valid_directories.Count -gt 0) {
+        Add-PathsTosystem_path -PathsToAdd $valid_directories
     } else {
         Write-Host "No new valid paths to add."
     }
