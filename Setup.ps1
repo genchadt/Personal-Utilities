@@ -21,7 +21,7 @@ $scripts = @(
     @{ Name = ".\scripts\Install-Chocolatey-PacMan.ps1" }
     @{ Name = ".\scripts\Install-Packages-Winget.ps1"; Argument = ".\scripts\config\packages_winget.txt" }
     @{ Name = ".\scripts\Install-Packages-Chocolatey.ps1"; Argument = ".\scripts\config\packages_choco.txt" }
-    @{ Name = ".\scripts\Update-GithubProfiles.ps1"; Argument = ".\scripts\config\profiles_github.txt" }
+    # @{ Name = ".\scripts\Update-GithubProfiles.ps1"; Argument = ".\scripts\config\profiles_github.txt" } # TODO: Fix this; disable for now
     @{ Name = "Install-Module 7Zip4PowerShell" }
     @{ Name = "Install-Script winfetch" }
 )
