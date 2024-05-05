@@ -69,27 +69,35 @@ function ErrorHandling {
 
         [int]$ScriptLineNumber = $MyInvocation.ScriptLineNumber,
 
-        [int]$OffsetInLine = $MyInvocation.OffsetInLine
+        [int]$OffsetInLine = $MyInvocation.OffsetInLine,
+
+        [ValidateSet("Info", "Warning", "Error")]
+        [string]$Severity = "Error",
+
+        [switch]$LogToFile
     )
 
-    Write-Divider -Strong
-    Write-Console -Text "Error: $ErrorMessage" -MessageType Error
-    Write-Console -Text "StackTrace: $StackTrace" -MessageType Error
-    if ($ScriptName) {
-        Write-Console -Text "Exception Source: $ScriptName" -MessageType Error
-    }
-    if ($ScriptLineNumber -ne 0) {
-        Write-Console -Text "Exception Line: $ScriptLineNumber" -MessageType Error
-    }
-    if ($OffsetInLine -ne 0) {
-        Write-Console -Text "Exception Offset: $OffsetInLine" -MessageType Error
-    }
-    Write-Divider -Strong
+    try {
+        Write-Divider -Strong
+        Write-Console -Text "Error: $ErrorMessage" -MessageType $Severity
+        Write-Console -Text "StackTrace: $StackTrace" -MessageType $Severity
+        if ($ScriptName) {
+            Write-Console -Text "Exception Source: $ScriptName" -MessageType $Severity
+        }
+        if ($ScriptLineNumber -ne 0) {
+            Write-Console -Text "Exception Line: $ScriptLineNumber" -MessageType $Severity
+        }
+        if ($OffsetInLine -ne 0) {
+            Write-Console -Text "Exception Offset: $OffsetInLine" -MessageType $Severity
+        }
+        Write-Divider -Strong
 
-    # Optionally, re-throw or handle the error based on script requirements
-    # throw "Error executing command: $ErrorMessage"
-    # Or log the error without stopping execution
-    Write-Log -Message "An error occurred: $ErrorMessage"
+        if ($LogToFile) {
+            Write-Log -Message "An error occurred: $ErrorMessage" -Severity $Severity
+        }
+    } catch {
+        Write-Console -Text "ErrorHandling function encountered an error: $_" -MessageType Error
+    }
 }
 
 Export-ModuleMember -Function ErrorHandling

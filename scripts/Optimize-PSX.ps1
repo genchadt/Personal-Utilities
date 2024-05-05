@@ -86,7 +86,10 @@ try {
 
     Import-Module 7Zip4Powershell
 }
-catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+catch { 
+    Write-Console "Issue encountered while importing 7Zip4Powershell!"
+    ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace -Severity Error
+}
 
 ###############################################
 # Objects
@@ -127,7 +130,7 @@ function Expand-Archives() {
     $archives = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.7z|\.gz|\.rar|\.zip' }
     
     if ($archives.Count -eq 0) {
-        Write-Console "Archive Mode skipped: No archive files found!" -MessageType Warning
+        Write-Console "Archive Mode skipped: No archive files found!" -MessageType Info
         Write-Divider
         return
     }
@@ -152,7 +155,10 @@ function Expand-Archives() {
             Write-Console "Extraction complete."
             Write-Divider -Strong
         }
-        catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+        catch { 
+            Write-Console "Issue encountered while extracting archive!"
+            ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
+        }
 
         # Determine total file size of all extracted files
         $extractedFiles = Get-ChildItem -Path $extractDestination -Recurse
