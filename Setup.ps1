@@ -21,6 +21,7 @@ $scripts = @(
     @{ Name = ".\scripts\Install-Chocolatey-PacMan.ps1" }
     @{ Name = ".\scripts\Install-Packages-Winget.ps1"; Argument = ".\scripts\config\packages_winget.txt" }
     @{ Name = ".\scripts\Install-Packages-Chocolatey.ps1"; Argument = ".\scripts\config\packages_choco.txt" }
+    @{ Name = ".\scripts\Update-GithubProfiles.ps1"; Argument = ".\scripts\config\profiles_github.txt" }
     @{ Name = "Install-Module 7Zip4PowerShell" }
     @{ Name = "Install-Script winfetch" }
 )
@@ -85,11 +86,11 @@ function Setup {
     Add-Paths
 
     # Install Package Manager (Chocolatey)
-    Invoke-Command ".\scripts\Install-Chocolatey-PacMan.ps1"
+    Invoke-Script ".\scripts\Install-Chocolatey-PacMan.ps1"
 
     # Install Packages (Chocolatey and Winget)
-    Invoke-Command ".\scripts\Install-Packages-Chocolatey.ps1"
-    Invoke-Command ".\scripts\Install-Packages-Winget.ps1"
+    Invoke-Script ".\scripts\Install-Packages-Chocolatey.ps1"
+    Invoke-Script ".\scripts\Install-Packages-Winget.ps1"
 
     if ($scripts) {
         foreach ($script in $scripts) {
