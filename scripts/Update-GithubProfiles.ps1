@@ -1,7 +1,39 @@
 <#
 .SYNOPSIS
-    Update-GithubProfiles.ps1 - A PowerShell script to update my various profiles with changes from remote Github repos.
+    Update-GithubProfiles.ps1 - Updates various local profiles by pulling changes from remote GitHub repositories.
+
+.DESCRIPTION
+    This script automates the process of updating local profile configurations by fetching and pulling changes from specified GitHub repositories.
+    It handles both updating existing local repositories and cloning new repositories if they are not already present locally.
+
+.PARAMETER None
+    No parameters are needed to run this script directly. All configurations are predefined within the script.
+
+.EXAMPLE
+    .\Update-GithubProfiles.ps1
+    This command runs the script to update or clone the GitHub repositories specified in the script.
+
+.NOTES
+    - This script requires Git to be installed and available in the system's PATH.
+    - Repositories are predefined in the script with their respective names, URLs, branches, and local directory paths.
+    - Error handling is provided for common issues like Git not being installed, repository not being found, or errors during Git operations.
+
+.LINK
+    Git Installation: https://git-scm.com/downloads
+
+.INPUTS
+    None
+
+.OUTPUTS
+    Console output indicating the status of each repository update or clone operation.
 #>
+
+###############################################
+# Parameters
+###############################################
+param (
+    [string]$ConfigurationPath = "$PSScriptRoot\config\profiles_github.json"
+)
 
 ###############################################
 # Imports
@@ -11,51 +43,71 @@ Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
 Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
 
 ###############################################
-# Objects
-###############################################
-
-$repos = @(
-    @{ name = "PowerShell Profile"; Url = "https://github.com/genchadt/powershell-profile.git"; Branch = "main"; Directory = "$env:USERPROFILE\Documents\PowerShell" },
-    @{ name = "neovim Profile"; Url = "https://github.com/genchadt/My-Vim.git"; Branch = "main"; Directory = "$env:LOCALAPPDATA\nvim"}
-)
-
-repo_list = $repos | ForEach-Object { New-Object PSObject -Property $_ }
-
-###############################################
 # Functions
 ###############################################
+
+function Read-Configuration {
+    param (
+        [string]$ConfigurationPath
+    )
+    if (Test-Path -Path $ConfigurationPath) {
+        $json = Get-Content $ConfigurationPath -Raw | ConvertFrom-Json
+        return $json
+    } else {
+        Write-Console "Configuration file not found at $ConfigurationPath." -MessageType Error
+        $errorMessage = "Configuration file not found."
+        ErrorHandling -ErrorMessage $errorMessage
+        exit 1
+    }
+}
+
 function Update-GithubProfiles {
+    $repos = Read-Configuration -ConfigurationPath $ConfigurationPath
+
     if (-not (Get-Command "git" -ErrorAction SilentlyContinue)) {
         Write-Console "Git is not installed. Please install Git and try again."
-        Write-Console 
         exit 1
     }
 
-    foreach ($repo in $repo_list) {
+    foreach ($repo in $repos) {
+        $resolved_directory = [Environment]::ExpandEnvironmentVariables($repo.Dir)
+        Write-Console "Debug: Resolved directory for $($repo.Name): $resolved_directory"
+
+        if ($resolved_directory -like '*$env:*' -or $resolved_directory -eq $null) {
+            Write-Console "Failed to resolve directory for $($repo.Name): $resolved_directory"
+            continue
+        }
+
+        # Debugging output to check resolved directory
+        Write-Console "Resolved directory for $($repo.Name): $resolved_directory"
+
         try {
-            $git_dir = Join-Path -Path $repo.Directory -ChildPath ".git"
-            if (Test-Path -Path $git_dir) {
-                Push-Location $repo.Directory
+            if (!(Test-Path -Path $resolved_directory)) {
+                Write-Console "Directory does not exist. Creating directory: $resolved_directory"
+                New-Item -Path $resolved_directory -ItemType Directory -Force
+            }
+
+            if (Test-Path -Path $resolved_directory) {
+                Push-Location $resolved_directory
                 git fetch
-                $status = git status
-                if ($status -like "*Your branch is behind*") {
-                    Write-Console "Updating $($repo.name)..."
+                $local_commit = git rev-parse HEAD
+                $remote_commit = git ls-remote origin -h refs/heads/$($repo.Branch) | Select-Object -First 1 | ForEach-Object { $_.Split()[0] }
+
+                if ($local_commit -ne $remote_commit) {
+                    Write-Console "Local repository $($repo.Name) is behind. Updating..."
                     git pull
-                    Write-Console "$repo.name updated successfully."
-                }
-                else {
-                    Write-Console "$($repo.name) is up-to-date."
+                    Write-Console "$($repo.Name) updated successfully."
+                } else {
+                    Write-Console "$($repo.Name) is up-to-date."
                 }
                 Pop-Location
-            }
-            else {
-                Write-Console "Repository $($repo.name) not found at $($repo.Directory). Cloning now..."
-                git clone $repo.Url -b $repo.Branch $repo.Directory
-                Write-Console "Repository $($repo.name) cloned successfully."
+            } else {
+                Write-Console "Cloning repository $($repo.Name) to $resolved_directory..."
+                git clone $repo.Url -b $repo.Branch $resolved_directory
+                Write-Console "Repository $($repo.Name) cloned successfully."
             }
         } catch {
-            Write-Console "Failed to update $($repo.name)."
-            ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace -Severity Error
+            Write-Console "Issue encountered while updating $($repo.Name): $($_.Exception.Message)" -MessageType Error
             continue
         }
     }
