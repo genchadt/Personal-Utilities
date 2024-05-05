@@ -1,30 +1,56 @@
 ###############################################
 # Install-Fonts
 #
-# Installs fonts recursively from the current directory.
+# Installs fonts recursively from the current directory using Windows' built-in tool.
+# Arguments:
+#   -Path: Specifies the directory to search for font files.
+#   -Filter: Specifies the file types to include.
+#   -Force: Forces the installation of fonts, overwriting existing files.
 ###############################################
 
 ###############################################
 # Imports
 ###############################################
-
 Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
 Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
 Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
 
+###############################################
+# Functions
+###############################################
 Write-Console "Starting font installations..."
-$fontsFolder = (New-Object -ComObject Shell.Application).Namespace(0x14)
-$fontFiles = Get-ChildItem -Recurse -Filter *.ttf
 
-foreach ($file in $fontFiles) {
-    $fileName = $file.Name
-    $fontPath = $file.FullName
-    $destinationPath = "C:\Windows\fonts\$fileName"
+function Install-Fonts {
+    param(
+        [string]$Path = ".",
+        [string]$Filter = "*.ttf",
+        [switch]$Force
+    )
 
-    if (-not(Test-Path -Path $destinationPath)) {
-        Write-Console "Installing font: $fileName"
-        $fontsFolder.CopyHere($fontPath, 0x10) # The 0x10 flag is for silent operation, adjust as needed
-    } else {
-        Write-Console "Font already installed: $fileName"
+    $flag = $Force.IsPresent ? 0x14 : 0x10  # 0x10 for silent, 0x14 to also force replace existing files
+    $fontFiles = Get-ChildItem -Path $Path -Filter $Filter -Recurse
+
+    $jobs = $fontFiles | ForEach-Object {
+        Start-Job -ScriptBlock {
+            param($filePath, $copyFlag)
+            $shellApp = New-Object -ComObject Shell.Application
+            $fontsFolder = $shellApp.Namespace(0x14)
+            if ($null -eq $fontsFolder) {
+                throw 'Failed to access the Fonts folder. Ensure you have the necessary permissions.'
+            }
+            $fontsFolder.CopyHere($filePath, $copyFlag)
+        } -ArgumentList $_.FullName, $flag
     }
+    
+    $jobs | Wait-Job
+    
+    $jobs | ForEach-Object {
+        $result = Receive-Job -Job $_
+        Remove-Job -Job $_
+        $result
+    }
+    
+    Write-Console "All fonts installations completed."
 }
+
+if ($MyInvocation.InvocationName -ne '.') { Install-Fonts }
