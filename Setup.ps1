@@ -22,6 +22,7 @@ $scripts = @(
     @{ Name = ".\scripts\Install-Packages-Winget.ps1"; Argument = ".\scripts\config\packages_winget.txt" }
     @{ Name = ".\scripts\Install-Packages-Chocolatey.ps1"; Argument = ".\scripts\config\packages_choco.txt" }
     @{ Name = "Install-Module 7Zip4PowerShell" }
+    @{ Name = "Install-Script winfetch" }
 )
 
 #############################################################################
