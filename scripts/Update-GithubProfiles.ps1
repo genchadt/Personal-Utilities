@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-    Update-GithubProfiles.ps1 - Updates various local profiles by pulling changes from remote GitHub repositories.
+    Updates various local profiles by pulling changes from remote GitHub repositories.
 
 .DESCRIPTION
     This script automates the process of updating local profile configurations by fetching and pulling changes from specified GitHub repositories.
     It handles both updating existing local repositories and cloning new repositories if they are not already present locally.
 
-.PARAMETER None
-    No parameters are needed to run this script directly. All configurations are predefined within the script.
+.PARAMETER ConfigurationPath
+    The path to the JSON configuration file containing repository information. Defaults to "$PSScriptRoot/config/profiles_github.json" if not specified.
 
 .EXAMPLE
     .\Update-GithubProfiles.ps1
@@ -32,84 +32,187 @@
 # Parameters
 ###############################################
 param (
-    [string]$ConfigurationPath = "$PSScriptRoot\config\profiles_github.json"
+    [string]$ConfigurationPath = "$PSScriptRoot/config/profiles_github.json"
 )
 
 ###############################################
 # Imports
 ###############################################
-Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
-Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
-Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
+Import-Module "$PSScriptRoot/lib/ErrorHandling.psm1"
+Import-Module "$PSScriptRoot/lib/TextHandling.psm1"
+Import-Module "$PSScriptRoot/lib/SysOperation.psm1"
 
 ###############################################
 # Functions
 ###############################################
 
-function Read-Configuration {
-    param (
-        [string]$ConfigurationPath
-    )
+function Get-Configuration {
+    param ([string]$ConfigurationPath)
     if (Test-Path -Path $ConfigurationPath) {
-        $json = Get-Content $ConfigurationPath -Raw | ConvertFrom-Json
-        return $json
+        Get-Content $ConfigurationPath -Raw | ConvertFrom-Json
     } else {
-        Write-Console "Configuration file not found at $ConfigurationPath." -MessageType Error
-        $errorMessage = "Configuration file not found."
-        ErrorHandling -ErrorMessage $errorMessage
+        Write-Error "Configuration file not found at $ConfigurationPath."
         exit 1
     }
 }
 
-function Update-GithubProfiles {
-    $repos = Read-Configuration -ConfigurationPath $ConfigurationPath
+function Commit-LocalChanges {
+    param ([string]$Directory)
+    Push-Location $Directory
+    $changes = git status --porcelain
+    if ($changes) {
+        git add .
+        git commit -m "Auto-commit local changes"
+        git push origin
+    }
+    Pop-Location
+}
 
-    if (-not (Get-Command "git" -ErrorAction SilentlyContinue)) {
-        Write-Console "Git is not installed. Please install Git and try again."
-        exit 1
+function Get-RepositoryStatus {
+    param (
+        [string]$Directory,
+        [string]$Branch,
+        [string]$RepoName,
+        [int]$Index,
+        [int]$Total
+    )
+    Write-Progress -Activity "Checking Repositories" -Status "$RepoName" -PercentComplete (($Index / $Total) * 100)
+    if (!(Test-Path -Path $Directory)) {
+        return [PSCustomObject]@{
+            Name = $RepoName
+            Changes = "Error: Directory does not exist"
+            Branch = $Branch
+        }
     }
 
+    Push-Location $Directory
+    git fetch origin
+    $local_commit = git log -1 --format="%at"
+    $remote_commit = git log -1 --format="%at" "origin/$Branch"
+    $status = git status --porcelain
+
+    if ($status) {
+        $changes = "Uncommitted changes"
+    } elseif ($local_commit -gt $remote_commit) {
+        $changes = "↑ UP"
+    } elseif ($local_commit -lt $remote_commit) {
+        $changes = "↓ DOWN"
+    } else {
+        $changes = "No changes"
+    }
+
+    Pop-Location
+
+    return [PSCustomObject]@{
+        Name = $RepoName
+        Directory = $Directory
+        Changes = $changes
+        Branch = $Branch
+    }
+}
+
+function Sync-Repository {
+    param (
+        [string]$Directory,
+        [string]$Branch,
+        [string]$Changes
+    )
+    Push-Location $Directory
+    switch ($Changes) {
+        "Uncommitted changes" {
+            if ((Read-Host "Local modifications detected. Commit and push? (Y/N)").ToUpper() -eq 'Y') {
+                git add .
+                git commit -m "Committing local changes"
+                git push origin $Branch  # Removed --force flag
+                Write-Host "Local changes committed and pushed."
+            }
+        }
+        "Diverged" {
+            Write-Host "Local commit diverged from remote."
+            if ((Read-Host "Fetch and rebase? (Y/N)").ToUpper() -eq 'Y') {
+                git fetch origin
+                git rebase "origin/$Branch"
+                Write-Host "Rebased to remote."
+            }
+        }
+    }
+    Pop-Location
+}
+
+function Update-GithubProfiles {
+    $repos = Get-Configuration -ConfigurationPath $ConfigurationPath
+    $totalRepos = $repos.Count
+    $repoIndex = 0
+    $changesApplied = @{}
+
+    # Store repository status in an array
+    $repoStatuses = @()
+
     foreach ($repo in $repos) {
-        $resolved_directory = [Environment]::ExpandEnvironmentVariables($repo.Dir)
-        Write-Console "Debug: Resolved directory for $($repo.Name): $resolved_directory"
+        $repoIndex++
+        $repoStatus = Get-RepositoryStatus -Directory ([Environment]::ExpandEnvironmentVariables($repo.Dir)) -Branch $repo.Branch -RepoName $repo.Name -Index $repoIndex -Total $totalRepos
+        $repoStatuses += $repoStatus
+    }
 
-        if ($resolved_directory -like '*$env:*' -or $resolved_directory -eq $null) {
-            Write-Console "Failed to resolve directory for $($repo.Name): $resolved_directory"
-            continue
+    # Output table header
+    $tableHeader = "Name", "Branch", "Changes"
+    $repoStatusesFormatted = @()
+    foreach ($repoStatus in $repoStatuses) {
+        $changesColor = "White"  # Default color
+        switch ($repoStatus.Changes) {
+            "↑ UP" { $changesColor = "Blue" }
+            "↓ DOWN" { $changesColor = "Green" }
         }
+        $repoStatusFormatted = [PSCustomObject]@{
+            Name = $repoStatus.Name
+            Branch = $repoStatus.Branch
+            Changes = $repoStatus.Changes
+            ChangesColor = $changesColor
+        }
+        $repoStatusesFormatted += $repoStatusFormatted
+    }
 
-        # Debugging output to check resolved directory
-        Write-Console "Resolved directory for $($repo.Name): $resolved_directory"
+    $repoStatusesFormatted | Format-Table -Property $tableHeader -AutoSize | Out-String -Width 200
 
-        try {
-            if (!(Test-Path -Path $resolved_directory)) {
-                Write-Console "Directory does not exist. Creating directory: $resolved_directory"
-                New-Item -Path $resolved_directory -ItemType Directory -Force
-            }
+    # Check if any changes need to be applied
+    $changesNeeded = $repoStatuses | Where-Object { $_.Changes -ne "No changes" }
 
-            if (Test-Path -Path $resolved_directory) {
-                Push-Location $resolved_directory
-                git fetch
-                $local_commit = git rev-parse HEAD
-                $remote_commit = git ls-remote origin -h refs/heads/$($repo.Branch) | Select-Object -First 1 | ForEach-Object { $_.Split()[0] }
+    if ($changesNeeded) {
+        # Ask user for action
+        $action = Read-Console -Text "Apply changes? (Y/N/A/D)" -Prompt "YAND"
 
-                if ($local_commit -ne $remote_commit) {
-                    Write-Console "Local repository $($repo.Name) is behind. Updating..."
-                    git pull
-                    Write-Console "$($repo.Name) updated successfully."
-                } else {
-                    Write-Console "$($repo.Name) is up-to-date."
+        # Apply changes based on user action
+        switch ($action.ToUpper()) {
+            "Y" {
+                foreach ($repoStatus in $changesNeeded) {
+                    if ($repoStatus.Changes -ne "No changes") {
+                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
+                        $changesApplied[$repoStatus.Name] = $true
+                    }
                 }
-                Pop-Location
-            } else {
-                Write-Console "Cloning repository $($repo.Name) to $resolved_directory..."
-                git clone $repo.Url -b $repo.Branch $resolved_directory
-                Write-Console "Repository $($repo.Name) cloned successfully."
             }
-        } catch {
-            Write-Console "Issue encountered while updating $($repo.Name): $($_.Exception.Message)" -MessageType Error
-            continue
+            "A" {
+                foreach ($repoStatus in $changesNeeded) {
+                    if ($repoStatus.Changes -ne "No changes") {
+                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
+                        $changesApplied[$repoStatus.Name] = $true
+                    }
+                }
+            }
+            "D" {
+                Write-Host "Changes declined."
+            }
         }
+
+        # Output applied changes
+        if ($changesApplied.Count -gt 0) {
+            Write-Host "Changes applied to the following repositories:"
+            foreach ($change in $changesApplied.Keys) {
+                Write-Host "- $change"
+            }
+        }
+    } else {
+        Write-Host "No updates available."
     }
 }
 
