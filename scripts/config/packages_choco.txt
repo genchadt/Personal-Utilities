@@ -8,14 +8,14 @@
 ###############################################
 # Core Utilities
 ###############################################
-7zip                                    # 7-Zip
+#7zip                                    # 7-Zip                         https://www.7-zip.org
 
 ###############################################
 # File Management and Sharing
 ###############################################
-filezilla                               # FileZilla
+#filezilla                               # FileZilla                    https://filezilla-project.org
 
 ###############################################
 # Games
 ###############################################
-#openttd                                 # OpenTTD
+#openttd                                 # OpenTTD                       https://openttd.org

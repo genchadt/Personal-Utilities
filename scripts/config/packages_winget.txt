@@ -55,6 +55,7 @@ Zoom.Zoom                               # Zoom                          https://
 ###############################################
 # Multimedia
 ###############################################
+calibre.calibre                         # Calibre                       https://calibre-ebook.com
 Spotify.Spotify                         # Spotify                       https://www.spotify.com
 
 ###############################################
