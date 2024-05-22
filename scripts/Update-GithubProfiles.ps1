@@ -56,7 +56,7 @@ function Get-Configuration {
     }
 }
 
-function Commit-LocalChanges {
+function CommitLocalChanges {
     param ([string]$Directory)
     Push-Location $Directory
     $changes = git status --porcelain
