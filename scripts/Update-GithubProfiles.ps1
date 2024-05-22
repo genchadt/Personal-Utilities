@@ -56,18 +56,6 @@ function Get-Configuration {
     }
 }
 
-function CommitLocalChanges {
-    param ([string]$Directory)
-    Push-Location $Directory
-    $changes = git status --porcelain
-    if ($changes) {
-        git add .
-        git commit -m "Auto-commit local changes"
-        git push origin
-    }
-    Pop-Location
-}
-
 function Get-RepositoryStatus {
     param (
         [string]$Directory,
@@ -86,7 +74,7 @@ function Get-RepositoryStatus {
     }
 
     Push-Location $Directory
-    git fetch origin
+    git fetch origin > $null 2>&1
     $local_commit = git log -1 --format="%at"
     $remote_commit = git log -1 --format="%at" "origin/$Branch"
     $status = git status --porcelain
@@ -94,9 +82,9 @@ function Get-RepositoryStatus {
     if ($status) {
         $changes = "Uncommitted changes"
     } elseif ($local_commit -gt $remote_commit) {
-        $changes = "↑ UP"
+        $changes = "Local changes ahead of remote"
     } elseif ($local_commit -lt $remote_commit) {
-        $changes = "↓ DOWN"
+        $changes = "Remote changes ahead of local"
     } else {
         $changes = "No changes"
     }
@@ -121,18 +109,24 @@ function Sync-Repository {
     switch ($Changes) {
         "Uncommitted changes" {
             if ((Read-Host "Local modifications detected. Commit and push? (Y/N)").ToUpper() -eq 'Y') {
-                git add .
-                git commit -m "Committing local changes"
-                git push origin $Branch  # Removed --force flag
+                git add . > $null 2>&1
+                git commit -m "Committing local changes" > $null 2>&1
+                git push origin $Branch > $null 2>&1
                 Write-Host "Local changes committed and pushed."
             }
         }
-        "Diverged" {
-            Write-Host "Local commit diverged from remote."
-            if ((Read-Host "Fetch and rebase? (Y/N)").ToUpper() -eq 'Y') {
-                git fetch origin
-                git rebase "origin/$Branch"
-                Write-Host "Rebased to remote."
+        "Local changes ahead of remote" {
+            Write-Host "Local commits ahead of remote."
+            if ((Read-Host "Push local changes to remote? (Y/N)").ToUpper() -eq 'Y') {
+                git push origin $Branch > $null 2>&1
+                Write-Host "Local changes pushed to remote."
+            }
+        }
+        "Remote changes ahead of local" {
+            Write-Host "Remote commits ahead of local."
+            if ((Read-Host "Pull remote changes? (Y/N)").ToUpper() -eq 'Y') {
+                git pull origin $Branch > $null 2>&1
+                Write-Host "Remote changes pulled to local."
             }
         }
     }
@@ -145,7 +139,6 @@ function Update-GithubProfiles {
     $repoIndex = 0
     $changesApplied = @{}
 
-    # Store repository status in an array
     $repoStatuses = @()
 
     foreach ($repo in $repos) {
@@ -154,57 +147,44 @@ function Update-GithubProfiles {
         $repoStatuses += $repoStatus
     }
 
-    # Output table header
-    $tableHeader = "Name", "Branch", "Changes"
-    $repoStatusesFormatted = @()
-    foreach ($repoStatus in $repoStatuses) {
-        $changesColor = "White"  # Default color
-        switch ($repoStatus.Changes) {
-            "↑ UP" { $changesColor = "Blue" }
-            "↓ DOWN" { $changesColor = "Green" }
+    $repoStatuses | ForEach-Object {
+        $color = switch ($_.Changes) {
+            "No changes" { "`e[32m" }  # Green
+            "Uncommitted changes" { "`e[34m" }  # Blue
+            "Local changes ahead of remote" { "`e[33m" }  # Yellow
+            "Remote changes ahead of local" { "`e[33m" }  # Yellow
+            "Error: Directory does not exist" { "`e[31m" }  # Red
+            default { "`e[0m" }  # Reset
         }
-        $repoStatusFormatted = [PSCustomObject]@{
-            Name = $repoStatus.Name
-            Branch = $repoStatus.Branch
-            Changes = $repoStatus.Changes
-            ChangesColor = $changesColor
-        }
-        $repoStatusesFormatted += $repoStatusFormatted
+        $_ | Add-Member -MemberType NoteProperty -Name 'ChangesColor' -Value $color
     }
 
-    $repoStatusesFormatted | Format-Table -Property $tableHeader -AutoSize | Out-String -Width 200
+    # Format the table with colorized output
+    $repoStatuses | Format-Table -Property Name, Branch, @{Name="Changes";Expression={"$($_.ChangesColor)$($_.Changes)`e[0m"}} -AutoSize
 
     # Check if any changes need to be applied
     $changesNeeded = $repoStatuses | Where-Object { $_.Changes -ne "No changes" }
 
     if ($changesNeeded) {
-        # Ask user for action
-        $action = Read-Console -Text "Apply changes? (Y/N/A/D)" -Prompt "YAND"
+        foreach ($repoStatus in $changesNeeded) {
+            Write-Host "Repository: $($repoStatus.Name), Changes: $($repoStatus.Changes)"
+            $action = Read-Host "Apply changes? (Y/N/D) (Y)es / (N)o / (D)ecline All"
 
-        # Apply changes based on user action
-        switch ($action.ToUpper()) {
-            "Y" {
-                foreach ($repoStatus in $changesNeeded) {
-                    if ($repoStatus.Changes -ne "No changes") {
-                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
-                        $changesApplied[$repoStatus.Name] = $true
-                    }
+            switch ($action.ToUpper()) {
+                "Y" {
+                    Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
+                    $changesApplied[$repoStatus.Name] = $true
                 }
-            }
-            "A" {
-                foreach ($repoStatus in $changesNeeded) {
-                    if ($repoStatus.Changes -ne "No changes") {
-                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
-                        $changesApplied[$repoStatus.Name] = $true
-                    }
+                "N" {
+                    Write-Host "Skipping changes for repository: $($repoStatus.Name)"
                 }
-            }
-            "D" {
-                Write-Host "Changes declined."
+                "D" {
+                    Write-Host "Declined all changes."
+                    break
+                }
             }
         }
 
-        # Output applied changes
         if ($changesApplied.Count -gt 0) {
             Write-Host "Changes applied to the following repositories:"
             foreach ($change in $changesApplied.Keys) {
