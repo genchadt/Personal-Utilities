@@ -39,101 +39,16 @@ param (
 # Imports
 ###############################################
 Import-Module "$PSScriptRoot/lib/ErrorHandling.psm1"
-Import-Module "$PSScriptRoot/lib/TextHandling.psm1"
+Import-Module "$PSScriptRoot/lib/GithubHelpers.psm1"
 Import-Module "$PSScriptRoot/lib/SysOperation.psm1"
+Import-Module "$PSScriptRoot/lib/TextHandling.psm1"
 
 ###############################################
 # Functions
 ###############################################
 
-function Get-Configuration {
-    param ([string]$ConfigurationPath)
-    if (Test-Path -Path $ConfigurationPath) {
-        Get-Content $ConfigurationPath -Raw | ConvertFrom-Json
-    } else {
-        Write-Error "Configuration file not found at $ConfigurationPath."
-        exit 1
-    }
-}
-
-function Get-RepositoryStatus {
-    param (
-        [string]$Directory,
-        [string]$Branch,
-        [string]$RepoName,
-        [int]$Index,
-        [int]$Total
-    )
-    Write-Progress -Activity "Checking Repositories" -Status "$RepoName" -PercentComplete (($Index / $Total) * 100)
-    if (!(Test-Path -Path $Directory)) {
-        return [PSCustomObject]@{
-            Name = $RepoName
-            Changes = "Error: Directory does not exist"
-            Branch = $Branch
-        }
-    }
-
-    Push-Location $Directory
-    git fetch origin > $null 2>&1
-    $local_commit = git log -1 --format="%at"
-    $remote_commit = git log -1 --format="%at" "origin/$Branch"
-    $status = git status --porcelain
-
-    if ($status) {
-        $changes = "Uncommitted changes"
-    } elseif ($local_commit -gt $remote_commit) {
-        $changes = "Local changes ahead of remote"
-    } elseif ($local_commit -lt $remote_commit) {
-        $changes = "Remote changes ahead of local"
-    } else {
-        $changes = "No changes"
-    }
-
-    Pop-Location
-
-    return [PSCustomObject]@{
-        Name = $RepoName
-        Directory = $Directory
-        Changes = $changes
-        Branch = $Branch
-    }
-}
-
-function Sync-Repository {
-    param (
-        [string]$Directory,
-        [string]$Branch,
-        [string]$Changes
-    )
-    Push-Location $Directory
-    switch ($Changes) {
-        "Uncommitted changes" {
-            if ((Read-Host "Local modifications detected. Commit and push? (Y/N)").ToUpper() -eq 'Y') {
-                git add . > $null 2>&1
-                git commit -m "Committing local changes" > $null 2>&1
-                git push origin $Branch > $null 2>&1
-                Write-Host "Local changes committed and pushed."
-            }
-        }
-        "Local changes ahead of remote" {
-            Write-Host "Local commits ahead of remote."
-            if ((Read-Host "Push local changes to remote? (Y/N)").ToUpper() -eq 'Y') {
-                git push origin $Branch > $null 2>&1
-                Write-Host "Local changes pushed to remote."
-            }
-        }
-        "Remote changes ahead of local" {
-            Write-Host "Remote commits ahead of local."
-            if ((Read-Host "Pull remote changes? (Y/N)").ToUpper() -eq 'Y') {
-                git pull origin $Branch > $null 2>&1
-                Write-Host "Remote changes pulled to local."
-            }
-        }
-    }
-    Pop-Location
-}
-
 function Update-GithubProfiles {
+    Write-Console "Test"
     $repos = Get-Configuration -ConfigurationPath $ConfigurationPath
     $totalRepos = $repos.Count
     $repoIndex = 0
@@ -181,7 +96,7 @@ function Update-GithubProfiles {
                 "A" {
                     Write-Host "Applying changes to all repositories."
                     foreach ($repoStatus in $changesNeeded) {
-                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
+                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes -ApplyAll
                         $changesApplied[$repoStatus.Name] = $true
                     }
                     break
