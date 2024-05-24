@@ -168,8 +168,8 @@ function Update-GithubProfiles {
     if ($changesNeeded) {
         foreach ($repoStatus in $changesNeeded) {
             Write-Host "Repository: $($repoStatus.Name), Changes: $($repoStatus.Changes)"
-            $action = Read-Host "Apply changes? (Y/N/D) (Y)es / (N)o / (D)ecline All"
-
+            $action = Read-Host "Apply changes? (Y)es (N)o (A)ccept All (D)ecline All"
+                
             switch ($action.ToUpper()) {
                 "Y" {
                     Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
@@ -177,6 +177,14 @@ function Update-GithubProfiles {
                 }
                 "N" {
                     Write-Host "Skipping changes for repository: $($repoStatus.Name)"
+                }
+                "A" {
+                    Write-Host "Applying changes to all repositories."
+                    foreach ($repoStatus in $changesNeeded) {
+                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
+                        $changesApplied[$repoStatus.Name] = $true
+                    }
+                    break
                 }
                 "D" {
                     Write-Host "Declined all changes."
