@@ -172,7 +172,7 @@ function Write-Log() {
     Add-Content -Path $logPath -Value $logEntry
 }
 
-Export-ModuleMember -Function Read-ConfigFile
+Export-ModuleMember -Function Get-Configuration
 Export-ModuleMember -Function Read-Console
 Export-ModuleMember -Function Write-Console
 Export-ModuleMember -Function Write-Divider

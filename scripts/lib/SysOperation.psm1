@@ -30,12 +30,6 @@ function Read-Json-Config($FilePath) {
 }
 
 function Read-Text-Config {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$FilePath
-    )
-
     $processedLines = @()
 
     try {
