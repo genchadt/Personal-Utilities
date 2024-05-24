@@ -1,3 +1,65 @@
+function Get-Configuration {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$FilePath
+    )
+
+    if (-not (Test-Path -Path $FilePath)) {
+        Write-Error "Configuration file not found at $FilePath."
+        exit 1
+    }
+
+    try {
+        if ($FilePath -match '\.json$') {
+            return Read-JsonConfig -FilePath $FilePath
+        } else {
+            return Read-TextConfig -FilePath $FilePath
+        }
+    } catch {
+        throw "Failed to process config file '$FilePath': $_"
+    }
+}
+
+function Read-Json-Config($FilePath) {
+    try {
+        return Get-Content $FilePath -Raw | ConvertFrom-Json
+    } catch {
+        throw "Failed to read JSON config file '$FilePath': $_"
+    }
+}
+
+function Read-Text-Config {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$FilePath
+    )
+
+    $processedLines = @()
+
+    try {
+        $lines = Get-Content $FilePath -ErrorAction Stop
+
+        foreach ($line in $lines) {
+            # Remove inline comments and trim each line
+            $processedLine = $line -split '#' | Select-Object -First 1 | ForEach-Object { $_.Trim() }
+
+            # Skip empty lines or lines that became empty after processing
+            if (-not $processedLine) {
+                continue
+            }
+
+            # Add processed line to the array
+            $processedLines += $processedLine
+        }
+
+        return $processedLines
+    } catch {
+        throw "Failed to read text config file '$FilePath': $_"
+    }
+}
+
 function Get-CurrentDirectorySize {
     $initial_directory_size_bytes = (Get-ChildItem -Path . -Recurse -Force | Measure-Object -Property Length -Sum).Sum
     return $initial_directory_size_bytes
@@ -51,6 +113,7 @@ function Remove-ItemSafely {
     }
 }
 
+Export-ModuleMember -Function Get-Configuration
 Export-ModuleMember -Function Get-CurrentDirectorySize
 Export-ModuleMember -Function Invoke-Command
 Export-ModuleMember -Function Remove-ItemSafely

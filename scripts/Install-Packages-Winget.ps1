@@ -3,8 +3,8 @@
 ###############################################
 
 Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
-Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
 Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
+Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
 
 ###############################################
 # Functions
@@ -17,7 +17,7 @@ function Install-Packages-Winget {
     )
     
     try {
-        $packages = Read-ConfigFile -FilePath $packagesFile
+        $packages = Get-Configuration -FilePath $packagesFile
     
         foreach ($package in $packages) {
             if ($package.StartsWith("#")) {

@@ -17,7 +17,7 @@ function Install-Packages-Chocolatey {
     )
     
     try {
-        $packages = Read-ConfigFile -FilePath $packagesFile
+        $packages = Get-Configuration -FilePath $packagesFile
     
         foreach ($package in $packages) {
             if ($package.StartsWith("#")) {
