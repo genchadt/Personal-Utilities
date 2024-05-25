@@ -56,9 +56,10 @@ function Compress-Video {
    )
 
    $search_pattern = "*.mp4"
-   $video_files = $null
+   $video_files = @()
 
    if (-not $VideoPath) {
+      $VideoPath = Get-Location
       $video_files = Get-ChildItem -Force -Path "." -Filter $search_pattern -File
    } else {
       $video_files = @(Get-Item $VideoPath)
@@ -111,4 +112,10 @@ function Compress-Video {
    }
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Compress-Video -VideoPath $VideoPath -DeleteSource $DeleteSource -IgnoreCompressed $IgnoreCompressed }
+$params = @{
+   VideoPath = $VideoPath
+   DeleteSource = $DeleteSource
+   IgnoreCompressed = $IgnoreCompressed
+}
+
+if ($MyInvocation.InvocationName -ne '.') { Compress-Video @params }

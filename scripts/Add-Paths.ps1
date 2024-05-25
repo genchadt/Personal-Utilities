@@ -1,15 +1,48 @@
-function Backup-system_path {
-    $backup_path = Join-Path -Path $env:TEMP -ChildPath "PATH_Backup.reg"
-    reg export "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" $backup_path
-    Write-Host "System PATH backed up to $backup_path"
-}
+<#
+    .SYNOPSIS
+        Add-Paths.ps1 - This script is designed to add directories to the system PATH.
 
-function Get-valid_directories {
+    .DESCRIPTION
+        !! This script must be run with Administrator privileges. !!
+        This script adds directories to the system PATH variable. Use with caution!
+
+    .PARAMETER
+#>
+
+<# 
+    .DESCRIPTION
+        Backup the current system PATH
+
+    .PARAMETER BackupPath
+        The path to save the backup to. Defaults to $env:TEMP\PATH_Backup.reg
+#>
+function Backup-SystemPathVariable {
     param (
-        [string]$BaseDirectory,
-        [string[]]$ExclusionList
+        [string]$BackupPath
     )
 
+    if (-not $BackupPath) {
+        $BackupPath = Join-Path -Path $env:TEMP -ChildPath "PATH_Backup.reg"
+    }
+
+    reg export "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" $BackupPath
+    Write-Host "System PATH backed up to $BackupPath"
+}
+
+<#
+    .DESCRIPTION
+        GetDirectories returns all directories in the specified base directory, excluding any directories in the exclusion list.
+
+    .PARAMETER BaseDirectory
+        The base directory to search for directories.
+
+    .PARAMETER ExclusionList
+        The list of directories to exclude from the search.
+
+    .OUTPUTS
+        The list of directories in the base directory that do not match any directories in the exclusion list.
+#>
+function GetDirectories([string]$BaseDirectory, [string[]]$ExclusionList) {
     $all_directories = Get-ChildItem -Path $BaseDirectory -Recurse -Directory | Select-Object -ExpandProperty FullName
 
     $filtered_directories = $all_directories | Where-Object {
@@ -21,68 +54,88 @@ function Get-valid_directories {
     return $filtered_directories
 }
 
-function Find-NonExistingAndDuplicatePaths {
-    param (
-        [string[]]$Directories
-    )
 
+<# 
+    .DESCRIPTION
+        ValidatePaths validates that the specified directories exist in the system PATH.
+
+    .PARAMETER Directories
+        The list of directories to validate.
+
+    .OUTPUTS
+        The list of directories that exist in the system PATH.
+#>
+function ValidatePaths([Parameter(Mandatory = $true)][string[]]$Directories) {
     $system_path = [System.Environment]::GetEnvironmentVariable("Path", "Machine").ToLower().Split(';')
     $valid_directories = @()
 
-    foreach ($dir in $Directories) {
-        if ((Test-Path $dir) -and -not $system_path.Contains($dir.ToLower())) {
-            $valid_directories += $dir
+    foreach ($directory in $Directories) {
+        if ((Test-Path $directory) -and -not $system_path.Contains($directory.ToLower())) {
+            $valid_directories += $directory
         }
     }
 
     return $valid_directories | Select-Object -Unique
 }
 
-function Add-PathsTosystem_path {
-    param (
-        [string[]]$PathsToAdd
-    )
+<# 
+    .DESCRIPTION
+        AddToPath adds directories to the system PATH.
 
+    .PARAMETER PathsToAdd
+        The list of directories to add to the system PATH.
+
+    .NOTES
+        !! This function modifies the system PATH variable !!
+#>
+function AddToPath([string]$PathsToAdd) {
     $currentsystem_path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     $new_path = ($currentsystem_path.Split(';') + $PathsToAdd | Select-Object -Unique) -join ';'
 
-    $confirmation = Read-Host "Confirm adding specified paths to system PATH? [Y/N]"
-    if ($confirmation -eq 'Y') {
-        [System.Environment]::SetEnvironmentVariable("Path", $new_path, "Machine")
-        Write-Host "System PATH updated successfully."
-    } else {
-        Write-Host "Operation cancelled."
-    }
+    [System.Environment]::SetEnvironmentVariable("Path", $new_path, "Machine")
 }
 
-function Add-Paths {
-    # Define exclusion list with wildcards
-    $exclusionList = @(
+function Add-ToSystemPath {
+    param (
+        [switch]$Recurse,
+        [string]$Path
+    )
+    $exclusion_list = @(
         "$($PSScriptRoot)\ext\NKit_v1.4\*"
     )
 
-    # Backup system PATH variables
-    Backup-system_path
+    # Backup system PATH
+    Backup-SystemPathVariable
 
-    # Initialize variables
-    $current_path = Get-Item -LiteralPath $PSScriptRoot | Select-Object -ExpandProperty FullName
+    # Get current directory
+    $current_path = $PSScriptRoot
 
-    # Get all directories excluding those in the exclusion list and subdirectories
-    $directories = Get-valid_directories -BaseDirectory $current_path -ExclusionList $exclusionList
+    # Construct list of directories to add while filtering out exclusions by name.
+    $directories = GetDirectories($current_path, $exclusion_list)
 
     # Filter out directories that already exist in the system PATH and validate existence
-    $valid_directories = Find-NonExistingAndDuplicatePaths -Directories $directories
+    $valid_directories = ValidatePaths($directories)
 
     # Display paths to the user for review
     Write-Host "Paths to be added to PATH:"
     $valid_directories | ForEach-Object { Write-Output $_ }
 
     # Prompt user to add paths
-    if ($valid_directories.Count -gt 0) {
-        Add-PathsTosystem_path -PathsToAdd $valid_directories
+    if ($valid_directories.Length -gt 0) {
+        $confirmation = Read-Host "Add paths to PATH? (Y/N)"
+        if ($confirmation -eq "Y") {
+            AddToPath($valid_directories)
+        } else {
+            Write-Host "Operation cancelled."
+        }
     } else {
-        Write-Host "No new valid paths to add."
+        Write-Host "No paths to add to PATH."
     }
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Add-Paths }
+$params = @{
+    Recurse = $Recurse
+    Path = $Path
+}
+
+if ($MyInvocation.InvocationName -ne '.') { Add-ToSystemPath @params }

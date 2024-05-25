@@ -1,18 +1,32 @@
-###############################################
-# Install-Fonts
-#
-# Installs fonts recursively from the current directory using Windows' built-in tool.
-# Arguments:
-#   -Path: Specifies the directory to search for font files.
-#   -Filter: Specifies the file types to include.
-#   -Force: Forces the installation of fonts, overwriting existing files.
-###############################################
+<# 
+    .SYNOPSIS
+        Install-Fonts.ps1 - Installs fonts recursively from the current directory using Windows' built-in tool.
+
+    .DESCRIPTION
+        !! This script must be run with Administrator privileges. !!
+        This script recursively installs fonts from the current directory using Windows' built-in tool.
+
+    .PARAMETER Path
+        The path to search for fonts. Defaults to the current directory.
+
+    .PARAMETER Filter
+        The file types to include. Defaults to *.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc.
+
+    .PARAMETER Force
+        Forces the installation of fonts, overwriting existing files.
+
+    .EXAMPLE
+        .\Install-Fonts.ps1
+
+    .EXAMPLE
+        .\Install-Fonts.ps1 -Path "C:\Windows\Fonts" -Filter "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc"
+#>
 
 ###############################################
 # Parameters
 ###############################################
 param(
-    [string]$Path = ".",
+    [string]$Path,
     [string]$Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc",
     [switch]$Force
 )
@@ -36,18 +50,21 @@ function Install-Fonts {
         [switch]$Force
     )
 
-    $flag = $Force.IsPresent ? 0x14 : 0x10  # 0x10 for silent, 0x14 to also force replace existing files
-    $fontFiles = Get-ChildItem -Path $Path -Filter $Filter -Recurse
+    # If no path is specified, use the current working directory
+    if (-not $Path) { $Path = $PWD }
 
-    $jobs = $fontFiles | ForEach-Object {
+    $flag = $Force.IsPresent ? 0x14 : 0x10  # 0x10 for silent, 0x14 to also force replace existing files
+    $font_files = Get-ChildItem -Path $Path -Filter $Filter -Recurse
+
+    $jobs = $font_files | ForEach-Object {
         Start-Job -ScriptBlock {
             param($filePath, $copyFlag)
-            $shellApp = New-Object -ComObject Shell.Application
-            $fontsFolder = $shellApp.Namespace(0x14)
-            if ($null -eq $fontsFolder) {
+            $shell = New-Object -ComObject Shell.Application
+            $fonts_directory = $shell.Namespace(0x14)
+            if ($null -eq $fonts_directory) {
                 throw 'Failed to access the Fonts folder. Ensure you have the necessary permissions.'
             }
-            $fontsFolder.CopyHere($filePath, $copyFlag)
+            $fonts_directory.CopyHere($filePath, $copyFlag)
         } -ArgumentList $_.FullName, $flag
     }
     
