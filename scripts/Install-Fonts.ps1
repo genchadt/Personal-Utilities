@@ -9,6 +9,15 @@
 ###############################################
 
 ###############################################
+# Parameters
+###############################################
+param(
+    [string]$Path = ".",
+    [string]$Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc",
+    [switch]$Force
+)
+
+###############################################
 # Imports
 ###############################################
 Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
@@ -22,8 +31,8 @@ Write-Console "Starting font installations..."
 
 function Install-Fonts {
     param(
-        [string]$Path = ".",
-        [string]$Filter = "*.ttf",
+        [string]$Path,
+        [string]$Filter,
         [switch]$Force
     )
 
@@ -53,4 +62,10 @@ function Install-Fonts {
     Write-Console "All fonts installations completed."
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Install-Fonts }
+$params = @{
+    Path = $Path
+    Filter = $Filter
+    Force = $Force
+}
+
+if ($MyInvocation.InvocationName -ne '.') { Install-Fonts $params }
