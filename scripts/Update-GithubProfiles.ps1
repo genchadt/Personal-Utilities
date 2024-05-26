@@ -49,7 +49,7 @@ Import-Module "$PSScriptRoot/lib/TextHandling.psm1"
 
 function Update-GithubProfiles {
     Write-Console "Test"
-    $repos = Get-Configuration -ConfigurationPath $ConfigurationPath
+    $repos = Get-Configuration -FilePath $ConfigurationPath
     $totalRepos = $repos.Count
     $repoIndex = 0
     $changesApplied = @{}
