@@ -132,7 +132,6 @@ function Remove-ItemSafely {
     process {
         if ($PSCmdlet.ShouldProcess($Path, "Move to Recycle Bin")) {
             try {
-                # Ensure the path resolves to an item
                 $resolved_path = Resolve-Path -Path $Path -ErrorAction Stop
                 $item = Get-Item -LiteralPath $resolved_path.Path -ErrorAction Stop
 
@@ -148,6 +147,10 @@ function Remove-ItemSafely {
                 }
             } catch {
                 Write-Error "Error moving item to Recycle Bin: $_.Exception.Message"
+            } finally {
+                if ($null -ne $shell) {
+                    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($shell) | Out-Null
+                }
             }
         }
     }
