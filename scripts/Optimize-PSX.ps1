@@ -106,8 +106,8 @@ $FileOperations = @{
     DeletionCandidates          = @()
     DeletedArchives             = @()
     DeletedImages               = @()
-    FinalDirectorySizeBytes     = 0
-    InitialDirectorySizeBytes   = 0
+    FinalDirectorySize     = 0
+    InitialDirectorySize   = 0
     TotalFileConversions        = 0
     TotalFileDeletions          = 0
     TotalFileExtractions        = 0
@@ -316,15 +316,12 @@ function Remove-DeletionCandidates() {
 }
 
 function Summarize() {
-    $InitialDirectorySizeBytes = $FileOperations.InitialDirectorySizeBytes
-    $FinalDirectorySizeBytes = $FileOperations.FinalDirectorySizeBytes
+    $InitialDirectorySize = $FileOperations.InitialDirectorySize
+    $FinalDirectorySize = $FileOperations.FinalDirectorySize
 
-    $InitialDirectorySizeMB = [math]::Round($InitialDirectorySizeBytes / 1MB, 2)
-    $FinalDirectorySizeMB = [math]::Round($FinalDirectorySizeBytes / 1MB, 2)
-
-    $SavedOrLost = if ($FinalDirectorySizeBytes -lt $InitialDirectorySizeBytes) { "Saved" } else { "Lost" }
-    $SpaceDifferenceBytes = [math]::Round([math]::Abs($FinalDirectorySizeBytes - $InitialDirectorySizeBytes) / 1MB, 2)
-    $SpaceDifferenceMB = [math]::Abs($FinalDirectorySizeBytes - $InitialDirectorySizeBytes)
+    $SavedOrLost = if ($FinalDirectorySize -lt $InitialDirectorySize) { "Saved" } else { "Lost" }
+    $SpaceDifferenceBytes = [math]::Round([math]::Abs($FinalDirectorySize - $InitialDirectorySize) / 1MB, 2)
+    $SpaceDifferenceMB = [math]::Abs($FinalDirectorySize - $InitialDirectorySize)
 
     $StartTime = $ScriptAttributes.StartTime
     $EndTime = Get-Date
@@ -332,8 +329,8 @@ function Summarize() {
 
     Write-Console "Summary"
     Write-Divider -Strong
-    Write-Console "Initial Directory Size: $InitialDirectorySizeBytes bytes ($InitialDirectorySizeMB MB)"
-    Write-Console "Final Directory Size: $FinalDirectorySizeBytes bytes ($FinalDirectorySizeMB MB)"
+    Write-Console "Initial Directory Size: $InitialDirectorySize KB"
+    Write-Console "Final Directory Size: $FinalDirectorySize KB"
     Write-Divider
     Write-Console "File Size Difference: $SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost"
     Write-Divider -Strong
@@ -363,7 +360,8 @@ function Optimize-PSX() {
 
     try {
         $ScriptAttributes.StartTime = Get-Date
-        $FileOperations.InitialDirectorySizeBytes = Get-CurrentDirectorySize
+        $initial_directory_size = Get-CurrentDirectorySize
+        $FileOperations.InitialDirectorySize = $initial_directory_size.Kilobytes
     
         Write-Divider -Strong
         Write-Console "Optimize-PSX Script $($ScriptAttributes.Version)" -NoLog
@@ -388,7 +386,8 @@ function Optimize-PSX() {
             Remove-DeletionCandidates(Get-Location)
         }
     
-        $FileOperations.FinalDirectorySizeBytes = Get-CurrentDirectorySize
+        $final_directory_size = Get-CurrentDirectorySize
+        $FileOperations.FinalDirectorySize = $final_directory_size.Kilobytes
     
         Summarize $CWDSizeBytes_Before $CWDSizeBytes_Current
     } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
