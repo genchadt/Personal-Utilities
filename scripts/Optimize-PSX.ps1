@@ -267,85 +267,90 @@ function Compress-Images() {
     }
 }
 
-function Remove-DeletionCandidates() {
+function Remove-DeletionCandidates {
     Write-Console "File Deletion Candidates:"
     Write-Divider -Strong
     foreach ($candidate in $FileOperations.DeletionCandidates) {
         Write-Console "    + $candidate"
     }
     Write-Divider
-    
+
     foreach ($candidate in $FileOperations.DeletionCandidates) {
-        $validInput = $false
-        
-        do {
-            if ($userChoice -ne 'A') {
-                $userChoice = Read-Console -Text "Are you sure you want to delete $candidate?" 
-            }
+        $userChoice = $null
 
-            if ($userChoice -eq 'Y' -or $userChoice -eq 'A' -or $userChoice -eq 'N' -or $userChoice -eq 'D') {
-                $validInput = $true
-            }
+        while ($userChoice -notin @('Y', 'A', 'N', 'D')) {
+            $userChoice = Read-Console -Text "Are you sure you want to delete $candidate? (Y)es/(A)ll/(N)o/(D)one" -Prompt "YNAD" -MessageType Warning
+            $userChoice = $userChoice.ToUpper()
+        }
 
-            switch ($userChoice.ToUpper()) {
-                'Y' { 
-                    Write-Console "Deleting $candidate"
-                    Remove-ItemSafely -Path $candidate
-                    $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
-                }
-                'A' { 
-                    Write-Console "Deleting $candidate"
-                    Remove-ItemSafely -Path $candidate
-                    $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
-                    break
-                }
-                'N' { 
-                    Write-Console "Skipping $candidate"
-                    continue
-                }
-                'D' { 
-                    Write-Console "No further deletions to be made."
-                    return
-                }
-                default { 
-                    Write-Console "Invalid input. Please try again."
-                }
+        switch ($userChoice) {
+            'Y' { 
+                Write-Console "Deleting $candidate"
+                Remove-ItemSafely -Path $candidate
+                $FileOperations.TotalFileDeletions++
+                $FileOperations.TotalFileOperations++
             }
-        } while (-not $validInput)
+            'A' { 
+                Write-Console "Deleting $candidate"
+                Remove-ItemSafely -Path $candidate
+                $FileOperations.TotalFileDeletions++
+                $FileOperations.TotalFileOperations++
+                continue
+            }
+            'N' { 
+                Write-Console "Skipping $candidate"
+            }
+            'D' { 
+                Write-Console "No further deletions to be made."
+                return
+            }
+        }
     }
 }
 
-function Summarize() {
+function Summarize {
     $InitialDirectorySize = $FileOperations.InitialDirectorySize
     $FinalDirectorySize = $FileOperations.FinalDirectorySize
 
-    $SavedOrLost = if ($FinalDirectorySize -lt $InitialDirectorySize) { "Saved" } else { "Lost" }
-    $SpaceDifferenceBytes = [math]::Round([math]::Abs($FinalDirectorySize - $InitialDirectorySize) / 1MB, 2)
-    $SpaceDifferenceMB = [math]::Abs($FinalDirectorySize - $InitialDirectorySize)
+    $SavedOrLost = if ($FinalDirectorySize.Bytes -lt $InitialDirectorySize.Bytes) { "Saved" } else { "Lost" }
+    $SpaceDifferenceBytes = [math]::Abs($FinalDirectorySize.Bytes - $InitialDirectorySize.Bytes)
+    $SpaceDifferenceMB = [math]::Round($SpaceDifferenceBytes / 1MB, 2)
 
     $StartTime = $ScriptAttributes.StartTime
     $EndTime = Get-Date
     $EstimatedRuntime = $EndTime - $StartTime
 
-    Write-Console "Summary"
-    Write-Divider -Strong
-    Write-Console "Initial Directory Size: $InitialDirectorySize KB"
-    Write-Console "Final Directory Size: $FinalDirectorySize KB"
-    Write-Divider
-    Write-Console "File Size Difference: $SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost"
-    Write-Divider -Strong
-    Write-Console "Total Archives Extracted: $($FileOperations.TotalFileExtractions)"
-    Write-Console "Total Images Converted: $($FileOperations.TotalFileConversions)"
-    Write-Console "Total Files Deleted: $($FileOperations.TotalFileDeletions)"
-    Write-Divider
-    Write-Console "Total Operations: $($FileOperations.TotalFileOperations)"
-    Write-Divider -Strong
+    # Define ANSI color codes
+    $green = "`e[32m"
+    $red = "`e[31m"
+    $yellow = "`e[33m"
+    $reset = "`e[0m"
+
+    # Summary Data
+    $summaryData = @(
+        [PSCustomObject]@{ Description = "Initial Directory Size (Bytes)"; Value = "$green$($InitialDirectorySize.Bytes)$reset" }
+        [PSCustomObject]@{ Description = "Initial Directory Size (KB)"; Value = "$green$($InitialDirectorySize.Kilobytes)$reset" }
+        [PSCustomObject]@{ Description = "Initial Directory Size (MB)"; Value = "$green$($InitialDirectorySize.Megabytes)$reset" }
+        [PSCustomObject]@{ Description = "Initial Directory Size (GB)"; Value = "$green$($InitialDirectorySize.Gigabytes)$reset" }
+        [PSCustomObject]@{ Description = "Final Directory Size (Bytes)"; Value = "$red$($FinalDirectorySize.Bytes)$reset" }
+        [PSCustomObject]@{ Description = "Final Directory Size (KB)"; Value = "$red$($FinalDirectorySize.Kilobytes)$reset" }
+        [PSCustomObject]@{ Description = "Final Directory Size (MB)"; Value = "$red$($FinalDirectorySize.Megabytes)$reset" }
+        [PSCustomObject]@{ Description = "Final Directory Size (GB)"; Value = "$red$($FinalDirectorySize.Gigabytes)$reset" }
+        [PSCustomObject]@{ Description = "File Size Difference"; Value = "$yellow$SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost$reset" }
+        [PSCustomObject]@{ Description = "Total Archives Extracted"; Value = "$($FileOperations.TotalFileExtractions)" }
+        [PSCustomObject]@{ Description = "Total Images Converted"; Value = "$($FileOperations.TotalFileConversions)" }
+        [PSCustomObject]@{ Description = "Total Files Deleted"; Value = "$($FileOperations.TotalFileDeletions)" }
+        [PSCustomObject]@{ Description = "Total Operations"; Value = "$($FileOperations.TotalFileOperations)" }
+        [PSCustomObject]@{ Description = "Operations Completed in"; Value = "$($EstimatedRuntime.Minutes)m $($EstimatedRuntime.Seconds)s $($EstimatedRuntime.Milliseconds)ms" }
+    )
+
+    # Output the summary using Format-Table
+    $summaryData | Format-Table -AutoSize
+
     Write-Console "CHD Files Created Successfully:"
     foreach ($file in $FileOperations.CHDFileList) {
         Write-Console "    + $file"
     }
-    Write-Divider
-    Write-Console "Operations completed in $($EstimatedRuntime.Minutes)m $($EstimatedRuntime.Seconds)s $($EstimatedRuntime.Milliseconds)ms"
     Write-Divider -Strong
 }
 
