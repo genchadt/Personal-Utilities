@@ -59,31 +59,16 @@ function Invoke-Script {
     }
 }
 
-function Request-Elevation {
-    param (
-        [string]$scriptPath
-    )
-
-    # Check if running with administrative privileges
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Host "Requesting elevation..."
-        
-        # Prompt user for elevation using Start-Process with -Verb RunAs
-        Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File $scriptPath" -Verb RunAs
-        exit
-    }
-}
-
 #############################################################################
 # Main
 #############################################################################
 
 function Setup {
     # Check for elevation
-    Request-Elevation -scriptPath $MyInvocation.MyCommand.Path
+    Request-Elevation
 
     # Add all relevant paths to system PATH variable
-    Add-Paths
+    Add-ToSystemPath.ps1 -PathsToAdd "$PSScriptRoot", "$PSScriptRoot\scripts", "$PSScriptRoot\scripts\lib"
 
     # Install Package Manager (Chocolatey)
     Invoke-Script ".\scripts\Install-Chocolatey-PacMan.ps1"
