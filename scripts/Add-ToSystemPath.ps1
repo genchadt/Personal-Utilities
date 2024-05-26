@@ -60,6 +60,9 @@ function Add-ToSystemPath {
         [string[]]$PathsToAdd
     )
 
+    Write-Console "Checking for elevated shell..."
+    Request-Elevation
+
     $current_path = [Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
 
     foreach ($Path in $PathsToAdd) {
