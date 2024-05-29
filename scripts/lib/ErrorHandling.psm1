@@ -50,7 +50,7 @@
 # Imports
 ###############################################
 
-Import-Module "$PSScriptRoot/../lib/TextHandling.psm1"
+Import-Module "$PSScriptRoot\TextHandling.psm1"
 
 ###############################################
 # Functions

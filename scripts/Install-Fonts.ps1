@@ -1,4 +1,4 @@
-<# 
+<#
     .SYNOPSIS
         Install-Fonts.ps1 - Installs fonts recursively from the current directory using Windows' built-in tool.
 
@@ -26,7 +26,7 @@
 # Parameters
 ###############################################
 param(
-    [string]$Path,
+    [string]$Path = $PWD,
     [string]$Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc",
     [switch]$Force
 )
@@ -54,7 +54,17 @@ function Install-Fonts {
     if (-not $Path) { $Path = $PWD }
 
     $flag = $Force.IsPresent ? 0x14 : 0x10  # 0x10 for silent, 0x14 to also force replace existing files
-    $font_files = Get-ChildItem -Path $Path -Filter $Filter -Recurse
+
+    # Convert the filter into an array
+    $filters = $Filter -split ","
+
+    # Get all font files matching the filter
+    $font_files = Get-ChildItem -Path $Path -Recurse -Include $filters -File
+
+    if ($font_files.Count -eq 0) {
+        Write-Console "No font files found in the specified directory."
+        return
+    }
 
     $jobs = $font_files | ForEach-Object {
         Start-Job -ScriptBlock {
@@ -67,15 +77,15 @@ function Install-Fonts {
             $fonts_directory.CopyHere($filePath, $copyFlag)
         } -ArgumentList $_.FullName, $flag
     }
-    
+
     $jobs | Wait-Job
-    
+
     $jobs | ForEach-Object {
         $result = Receive-Job -Job $_
         Remove-Job -Job $_
         $result
     }
-    
+
     Write-Console "All fonts installations completed."
 }
 
@@ -85,4 +95,4 @@ $params = @{
     Force = $Force
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Install-Fonts $params }
+if ($MyInvocation.InvocationName -ne '.') { Install-Fonts @params }
