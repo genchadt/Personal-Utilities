@@ -26,8 +26,8 @@
 # Parameters
 ###############################################
 param(
-    [string]$Path = $PWD,
-    [string]$Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc",
+    [string]$Path,
+    [string]$Filter,
     [switch]$Force
 )
 
@@ -52,6 +52,7 @@ function Install-Fonts {
 
     # If no path is specified, use the current working directory
     if (-not $Path) { $Path = $PWD }
+    if (-not $Filter) { $Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc" }
 
     $flag = $Force.IsPresent ? 0x14 : 0x10  # 0x10 for silent, 0x14 to also force replace existing files
 
@@ -89,10 +90,4 @@ function Install-Fonts {
     Write-Console "All fonts installations completed."
 }
 
-$params = @{
-    Path = $Path
-    Filter = $Filter
-    Force = $Force
-}
-
-if ($MyInvocation.InvocationName -ne '.') { Install-Fonts @params }
+if ($MyInvocation.InvocationName -ne '.') { Install-Fonts -Path $Path -Filter $Filter -Force $Force }
