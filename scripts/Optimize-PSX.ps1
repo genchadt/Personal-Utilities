@@ -398,4 +398,4 @@ function Optimize-PSX() {
     } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Optimize-PSX $Path }
+if ($MyInvocation.InvocationName -ne '.') { Optimize-PSX -Path $Path -SkipArchive $SkipArchive -DeleteArchive $DeleteArchive -DeleteImage $DeleteImage }
