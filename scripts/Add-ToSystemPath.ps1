@@ -36,8 +36,12 @@ Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
 
 function Backup-SystemPath {
     param (
-        [string]$BackupPath = "$PSScriptRoot\backups\path.reg"
+        [string]$BackupPath
     )
+
+    if (-not $BackupPath) {
+        $BackupPath = "$PSScriptRoot\backups\path.reg"
+    }
 
     if ($BackupPath -notlike "*.reg") {
         $BackupPath += ".reg"
@@ -79,8 +83,4 @@ function Add-ToSystemPath {
     Write-Console "New path: $current_path"
 }
 
-$params = @{
-    PathsToAdd = $PathsToAdd
-}
-
-if ($MyInvocation.InvocationName -ne '.') { Add-ToSystemPath @params }
+if ($MyInvocation.InvocationName -ne '.') { Add-ToSystemPath -PathsToAdd $PathsToAdd }
