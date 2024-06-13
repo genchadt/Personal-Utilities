@@ -25,6 +25,7 @@ VideoLAN.VLC                            # VLC                           https://
 ###############################################
 # Development Tools
 ###############################################
+DevToys-app.DevToys                     # DevToys                       https://devtoys.app/
 Git.Git                                 # Git                           https://git-scm.com
 Microsoft.VisualStudioCode              # VS Code                       https://github.com/microsoft/vscode
 #Microsoft.VisualStudioCode.Insiders    # VS Code Insiders build
