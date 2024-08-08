@@ -66,8 +66,8 @@
 ###############################################
 
 param (
-    [alias("da")][switch]$DeleteArchive,    # Delete the source archive
-    [alias("di")][switch]$DeleteImage,      # Delete the source image
+    [alias("da")][switch]$DeleteArchive,    # Delete source archive(s)
+    [alias("di")][switch]$DeleteImage,      # Delete source image(s)
     [alias("f")][switch]$Force,             # Force overwriting
     [alias("silent")][switch]$SilentMode,   # Silent mode
     [alias("sa")][switch]$SkipArchive       # Skip archive extraction
@@ -394,7 +394,7 @@ function Optimize-PSX() {
         $final_directory_size = Get-CurrentDirectorySize
         $FileOperations.FinalDirectorySize = $final_directory_size.Kilobytes
     
-        Summarize $CWDSizeBytes_Before $CWDSizeBytes_Current
+        Summarize
     } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 }
 
