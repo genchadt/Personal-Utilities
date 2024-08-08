@@ -97,7 +97,7 @@ catch {
 
 $ScriptAttributes = @{
     LogFile                     = "logs\Optimize-PSX.log"
-    StartTime                   = $null
+    StartTime                   = 0
     Version                     = "1.1.2"
 }
 
@@ -398,4 +398,4 @@ function Optimize-PSX() {
     } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Optimize-PSX -Path $Path -SkipArchive $SkipArchive -Force $Force -DeleteArchive $DeleteArchive -DeleteImage $DeleteImage }
+if ($MyInvocation.InvocationName -ne '.') { Optimize-PSX }
