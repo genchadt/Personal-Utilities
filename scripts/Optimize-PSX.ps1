@@ -66,8 +66,6 @@
 ###############################################
 
 param (
-    [alias("da")][switch]$DeleteArchive,    # Delete source archive(s)
-    [alias("di")][switch]$DeleteImage,      # Delete source image(s)
     [alias("f")][switch]$Force,             # Force overwriting
     [alias("silent")][switch]$SilentMode,   # Silent mode
     [alias("sa")][switch]$SkipArchive       # Skip archive extraction
@@ -103,13 +101,9 @@ $ScriptAttributes = @{
 
 $FileOperations = @{
     CHDFileList                 = @()
-    DeletionCandidates          = @()
-    DeletedArchives             = @()
-    DeletedImages               = @()
-    FinalDirectorySize     = 0
-    InitialDirectorySize   = 0
+    FileSizeCHD                 = @()
+    FileSizeImage               = @()
     TotalFileConversions        = 0
-    TotalFileDeletions          = 0
     TotalFileExtractions        = 0
     TotalFileOperations         = 0
 }
@@ -172,27 +166,7 @@ function Expand-Archives() {
             $destinationPath = Join-Path $PWD $imageFile.Name
             Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force
             $FileOperations.TotalFileOperations++
-        }
-
-        if ($DeleteArchive) {
-            $FileOperations.DeletionCandidates += $archive.FullName
-        }
-    
-        if ($DeleteImage) {       
-            $escapedBaseName = $image.BaseName -replace '\[.*\]', '.*'
-            $pattern = "^$escapedBaseName.*\.(bin|cue|gdi|iso|raw)$"
-        
-            $matchingFiles = Get-ChildItem -Path $image.Directory.FullName -Filter "*.*" | Where-Object { $_.Name -match $pattern }
-        
-            foreach ($matchingFile in $matchingFiles) {
-                $FileOperations.DeletionCandidates += $matchingFile.FullName
-            }
-            Write-Divider
-            Write-Console "-DeleteArchive passed!" -MessageType Warning
-            Write-Console "Source archives added to deletion candidates." -MessageType Warning
-            Write-Divider
-        }        
-        
+        }       
     }
     
     return $result
@@ -249,21 +223,7 @@ function Compress-Images() {
         Write-Divider
 
         $FileOperations.CHDFileList += $resolvedPath
-        $FileOperations.TotalFileConversions++; $FileOperations.TotalFileOperations++
-
-        if ($DeleteImage) {     
-            $baseName = $image.BaseName -replace '[^\w\-\. ]', '*'
-
-            # Delete corresponding files excluding .chd
-            $matchingFiles = Get-ChildItem -LiteralPath $image.Directory.FullName -File -Recurse -Exclude "*.chd" |
-                             Where-Object { $_.BaseName -like "$($baseName)*" -and $_.Extension -notin ".chd" }
-            
-            foreach ($matchingFile in $matchingFiles) {
-                $FileOperations.DeletionCandidates += $matchingFile.FullName
-                $FileOperations.TotalFileDeletions++; $FileOperations.TotalFileOperations++
-            }
-        }        
-        
+        $FileOperations.TotalFileConversions++; $FileOperations.TotalFileOperations++       
     }
 }
 
@@ -311,10 +271,10 @@ function Remove-DeletionCandidates {
 function Summarize {
     $InitialDirectorySize = $FileOperations.InitialDirectorySize
     $FinalDirectorySize = $FileOperations.FinalDirectorySize
-
-    $SavedOrLost = if ($FinalDirectorySize.Bytes -lt $InitialDirectorySize.Bytes) { "Saved" } else { "Lost" }
-    $SpaceDifferenceBytes = [math]::Abs($FinalDirectorySize.Bytes - $InitialDirectorySize.Bytes)
-    $SpaceDifferenceMB = [math]::Round($SpaceDifferenceBytes / 1MB, 2)
+    
+    # Get size differences (i.e difference in file size between raw image files and converted chd files)
+    #
+    #
 
     $StartTime = $ScriptAttributes.StartTime
     $EndTime = Get-Date
@@ -328,14 +288,7 @@ function Summarize {
 
     # Summary Data
     $summaryData = @(
-        [PSCustomObject]@{ Description = "Initial Directory Size (Bytes)"; Value = "$green$($InitialDirectorySize.Bytes)$reset" }
-        [PSCustomObject]@{ Description = "Initial Directory Size (KB)"; Value = "$green$($InitialDirectorySize.Kilobytes)$reset" }
-        [PSCustomObject]@{ Description = "Initial Directory Size (MB)"; Value = "$green$($InitialDirectorySize.Megabytes)$reset" }
-        [PSCustomObject]@{ Description = "Initial Directory Size (GB)"; Value = "$green$($InitialDirectorySize.Gigabytes)$reset" }
-        [PSCustomObject]@{ Description = "Final Directory Size (Bytes)"; Value = "$red$($FinalDirectorySize.Bytes)$reset" }
-        [PSCustomObject]@{ Description = "Final Directory Size (KB)"; Value = "$red$($FinalDirectorySize.Kilobytes)$reset" }
-        [PSCustomObject]@{ Description = "Final Directory Size (MB)"; Value = "$red$($FinalDirectorySize.Megabytes)$reset" }
-        [PSCustomObject]@{ Description = "Final Directory Size (GB)"; Value = "$red$($FinalDirectorySize.Gigabytes)$reset" }
+
         [PSCustomObject]@{ Description = "File Size Difference"; Value = "$yellow$SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost$reset" }
         [PSCustomObject]@{ Description = "Total Archives Extracted"; Value = "$($FileOperations.TotalFileExtractions)" }
         [PSCustomObject]@{ Description = "Total Images Converted"; Value = "$($FileOperations.TotalFileConversions)" }
