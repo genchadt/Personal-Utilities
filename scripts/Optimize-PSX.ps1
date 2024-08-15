@@ -100,7 +100,9 @@ $ScriptAttributes = @{
 }
 
 $FileOperations = @{
+    ArchiveFileList             = @()
     CHDFileList                 = @()
+    ImageFileList               = @()
     FileSizeCHD                 = @()
     FileSizeImage               = @()
     TotalFileConversions        = 0
@@ -269,9 +271,6 @@ function Remove-DeletionCandidates {
 }
 
 function Summarize {
-    $InitialDirectorySize = $FileOperations.InitialDirectorySize
-    $FinalDirectorySize = $FileOperations.FinalDirectorySize
-    
     # Get size differences (i.e difference in file size between raw image files and converted chd files)
     #
     #
@@ -281,18 +280,17 @@ function Summarize {
     $EstimatedRuntime = $EndTime - $StartTime
 
     # Define ANSI color codes
-    $green = "`e[32m"
-    $red = "`e[31m"
-    $yellow = "`e[33m"
-    $reset = "`e[0m"
+    # $green = "`e[32m"
+    # $red = "`e[31m"
+    # $yellow = "`e[33m"
+    # $reset = "`e[0m"
 
     # Summary Data
     $summaryData = @(
 
-        [PSCustomObject]@{ Description = "File Size Difference"; Value = "$yellow$SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost$reset" }
+        [PSCustomObject]@{ Description = "File Size Difference"; Value = "$$SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost" }
         [PSCustomObject]@{ Description = "Total Archives Extracted"; Value = "$($FileOperations.TotalFileExtractions)" }
         [PSCustomObject]@{ Description = "Total Images Converted"; Value = "$($FileOperations.TotalFileConversions)" }
-        [PSCustomObject]@{ Description = "Total Files Deleted"; Value = "$($FileOperations.TotalFileDeletions)" }
         [PSCustomObject]@{ Description = "Total Operations"; Value = "$($FileOperations.TotalFileOperations)" }
         [PSCustomObject]@{ Description = "Operations Completed in"; Value = "$($EstimatedRuntime.Minutes)m $($EstimatedRuntime.Seconds)s $($EstimatedRuntime.Milliseconds)ms" }
     )
