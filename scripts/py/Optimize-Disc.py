@@ -7,11 +7,19 @@ import py7zr
 import subprocess
 import sys 
 
+def extract_archive(archive):
+    try:
+        with py7zr.SevenZipFile(archive, mode='r') as archive:
+            archive.extractall()
+    except:
+        print("Error extracting " + archive)
+
 def search_path_for_discs(path):
     found_discs = []
+    
     supported_archives = ('.7z', '.gz', '.rar', '.zip')
     supported_discs = ('.iso', '.bin', '.cue', '.gdi', '.raw', '.chd')
-    
+  
     if os.path.isdir(path):
         for root, dirs, files in os.walk(path):
             for file in files:
