@@ -27,6 +27,7 @@ VideoLAN.VLC                            # VLC                           https://
 ###############################################
 DevToys-app.DevToys                     # DevToys                       https://devtoys.app/
 Git.Git                                 # Git                           https://git-scm.com
+Golang.Go                               # Golang                        https://golang.org
 Microsoft.VisualStudioCode              # VS Code                       https://github.com/microsoft/vscode
 #Microsoft.VisualStudioCode.Insiders    # VS Code Insiders build
 Neovim.Neovim                           # Neovim                        https://github.com/neovim/neovim
@@ -76,6 +77,7 @@ ajeetdsouza.zoxide                      # Zoxide                        https://
 alexx2000.DoubleCommander               # Double Commander              https://github.com/alexx2000/doublecmd
 fzf                                     # fzf                           https://github.com/junegunn/fzf
 gokcehan.lf                             # lf (Terminal File Manager)    https://github.com/gokcehan/lf
+gsass1.NTop				                # ntop task manager		        https://github.com/gsass1/NTop
 Microsoft.PowerToys                     # PowerToys                     https://github.com/microsoft/PowerToys
 Microsoft.Sysinternals.ProcessExplorer  # Process Explorer              https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer
 Microsoft.Sysinternals.TCPView          # TCPView                       https://learn.microsoft.com/en-us/sysinternals/downloads/tcpview
