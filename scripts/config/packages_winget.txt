@@ -11,7 +11,7 @@
 ###############################################
 ### Winget ID ###                       ### Package Name ###            ### URL ###
 AutoHotkey.AutoHotkey                   # AutoHotkey                    https://www.autohotkey.com
-Chocolatey.Chocolatey                   # Chocolatey Package Manager    https://chocolatey.org
+#Chocolatey.Chocolatey                   # Chocolatey Package Manager    https://chocolatey.org
 flux.flux                               # Flux                          https://github.com/fluxcd/flux2
 SomePythonThings.WingetUIStore          # WingetUIStore                 https://github.com/SomePythonThings/WingetUIStore
 
@@ -28,6 +28,7 @@ VideoLAN.VLC                            # VLC                           https://
 DevToys-app.DevToys                     # DevToys                       https://devtoys.app/
 Git.Git                                 # Git                           https://git-scm.com
 Golang.Go                               # Golang                        https://golang.org
+JFrog.Conan                             # Conan                         https://conan.io
 Microsoft.VisualStudioCode              # VS Code                       https://github.com/microsoft/vscode
 #Microsoft.VisualStudioCode.Insiders    # VS Code Insiders build
 Neovim.Neovim                           # Neovim                        https://github.com/neovim/neovim
@@ -86,3 +87,4 @@ NirSoft.NirCmd                          # NirCmd                        https://
 #Ookla.Speedtest.CLI                    # Ookla Speedtest CLI tool      https://github.com/sivel/speedtest-cli
 Safing.Portmaster                       # Portmaster                    https://github.com/safing/portmaster
 WiresharkFoundation.Wireshark           # Wireshark                     https://github.com/Wireshark/Wireshark
+xanderfrangos.twinkletray               # TwinkleTray                   https://twinkletray.com/
