@@ -1,27 +1,27 @@
+<#
+.SYNOPSIS
+    Install-Packages-Winget.ps1 - Installs selected packages using winget.
+
+.DESCRIPTION
+    Reads a list of packages from a configuration file, allows the user to select which packages to install, and installs them using winget.
+
+.NOTES
+    Script Version: 1.0.4
+    Author: Chad
+    Creation Date: 2024-01-29 04:30:00 GMT
+#>
+
 ###############################################
-# Globals
+# Parameters
 ###############################################
 
-$defaultPackagesFile = ".\config\packages_winget.txt"
+param (
+    [Parameter(Position=0, Mandatory=$false)]
+    [string]$packagesFile = ".\config\packages_winget.txt",
 
-###############################################
-# Imports
-###############################################
-
-# Module existence check
-$modules = @(
-    "$PSScriptRoot\lib\ErrorHandling.psm1",
-    "$PSScriptRoot\lib\SysOperation.psm1",
-    "$PSScriptRoot\lib\TextHandling.psm1"
+    [Parameter(Position=1, Mandatory=$false)]
+    [switch]$force
 )
-
-foreach ($module in $modules) {
-    if (Test-Path $module) {
-        Import-Module $module
-    } else {
-        Write-Host "Warning: Module '$module' not found. Some functions may not work properly." -ForegroundColor Yellow
-    }
-}
 
 ###############################################
 # Functions
@@ -29,54 +29,61 @@ foreach ($module in $modules) {
 
 function Install-Packages-Winget {
     param (
-        [Parameter(Position=0)]
-        [string]$packagesFile = $defaultPackagesFile,
+        [string]$packagesFile,
         [switch]$force
     )
-    
+
     # Parameter validation
     if (-not (Test-Path $packagesFile)) {
         Write-Host "Error: The specified packages file '$packagesFile' does not exist." -ForegroundColor Red
         return
     }
-    
+
     try {
-        $packages = Get-Configuration -FilePath $packagesFile
+        # Load packages from file, remove comments and empty lines
+        $packages = Get-Content -Path $packagesFile | ForEach-Object {
+            # Remove anything after the first '#' and trim whitespace
+            ($_ -split '#')[0].Trim()
+        } | Where-Object { $_ -ne '' }
+
         if (-not $packages) {
             Write-Host "Error: No packages found in the specified file." -ForegroundColor Red
             return
         }
-        
-        # Filter out comments and empty lines
-        $packages = $packages | Where-Object { -not ($_ -match '^\s*#') -and (-not [string]::IsNullOrWhiteSpace($_)) }
 
-        # Install packages sequentially
-        foreach ($package in $packages) {
+        # Show package list in Out-GridView for user selection
+        $selectedPackages = $packages | Out-GridView -Title "Select packages to install" -PassThru
+
+        # If no packages selected, exit
+        if (-not $selectedPackages) {
+            Write-Host "No packages selected. Exiting."
+            return
+        }
+
+        # Install selected packages sequentially
+        foreach ($package in $selectedPackages) {
             $installCommand = "winget install $package -e -i"
             if ($force) {
                 $installCommand += " --force"
             }
 
             try {
+                Write-Host "Installing: $package" -ForegroundColor Cyan
                 Invoke-Expression $installCommand
                 Write-Host "Successfully installed: $package" -ForegroundColor Green
             } catch {
                 Write-Host "Failed to install: $package" -ForegroundColor Red
-                # Log the error details
-                ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
             }
         }
 
-        Write-Console "Winget packages installation complete."
+        Write-Host "Winget packages installation complete." -ForegroundColor Green
     } catch {
-        ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
+        Write-Warning "An unexpected error occurred: $_"
     }    
 }
 
-if ($MyInvocation.InvocationName -ne '.') {
-    param (
-        [string]$packagesFile = ".\config\packages_winget.txt",
-        [switch]$force
-    )
-    Install-Packages-Winget -packagesFile $packagesFile -force:$force
-}
+###############################################
+# Main Execution
+###############################################
+
+Install-Packages-Winget -packagesFile $packagesFile -force:$force
