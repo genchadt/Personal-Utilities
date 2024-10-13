@@ -71,10 +71,10 @@ function Setup {
     Add-ToSystemPath.ps1 -PathsToAdd "$PSScriptRoot", "$PSScriptRoot\scripts", "$PSScriptRoot\scripts\lib"
 
     # Install Package Manager (Chocolatey)
-    Invoke-Script ".\scripts\Install-Chocolatey-PacMan.ps1"
+    # Invoke-Script ".\scripts\Install-Chocolatey-PacMan.ps1"
 
     # Install Packages (Chocolatey and Winget)
-    Invoke-Script ".\scripts\Install-Packages-Chocolatey.ps1"
+    # Invoke-Script ".\scripts\Install-Packages-Chocolatey.ps1"
     Invoke-Script ".\scripts\Install-Packages-Winget.ps1"
 
     if ($scripts) {
