@@ -11,7 +11,7 @@
 ###############################################
 ### Winget ID ###                       ### Package Name ###            ### URL ###
 AutoHotkey.AutoHotkey                   # AutoHotkey                    https://www.autohotkey.com
-#Chocolatey.Chocolatey                   # Chocolatey Package Manager    https://chocolatey.org
+#Chocolatey.Chocolatey                  # Chocolatey Package Manager    https://chocolatey.org
 flux.flux                               # Flux                          https://github.com/fluxcd/flux2
 SomePythonThings.WingetUIStore          # WingetUIStore                 https://github.com/SomePythonThings/WingetUIStore
 
