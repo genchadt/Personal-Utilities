@@ -18,6 +18,18 @@ packages:
       scoop:
         available: false
     categories:
+      - Limited
+      - Standard
+
+  - id: Open-Shell.Open-Shell-Menu
+    name: Open Shell Menu
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
       - Standard
 
   # Audio and Video
