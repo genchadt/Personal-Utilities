@@ -6,9 +6,6 @@ param(
     [switch]$list
 )
 
-Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
-Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
-
 function ListScriptCreatedFirewallRules {
     Get-NetFirewallRule | Where-Object { $_.DisplayName -like "Block Folder: *" }
 }
@@ -19,10 +16,10 @@ function CheckFirewallRuleExists {
     )
     $existingRule = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
     if ($existingRule) {
-        Write-Console -Text "A firewall rule for '$RuleName' already exists."
+        Write-Host "A firewall rule for '$RuleName' already exists." -ForegroundColor Green
         return $true
     } else {
-        Write-Console -Text "No firewall rule exists for '$RuleName'."
+        Write-Host "No firewall rule exists for '$RuleName'." -ForegroundColor Yellow
         return $false
     }
 }
@@ -36,17 +33,17 @@ function CheckAndExecuteRule {
     if ($Remove) {
         if ($existingRule) {
             Remove-NetFirewallRule -DisplayName $RuleName
-            Write-Console -Text "Firewall rule '$RuleName' has been removed."
+            Write-Host "Firewall rule '$RuleName' has been removed." -ForegroundColor Green
         } else {
-            Write-Console -Text "No rule named '$RuleName' exists to remove."
+            Write-Host "No rule named '$RuleName' exists to remove." -ForegroundColor Yellow
         }
     } else {
         if ($existingRule) {
-            Write-Console -Text "Firewall rule '$RuleName' already exists. No new rule created."
+            Write-Host "Firewall rule '$RuleName' already exists. No new rule created." -ForegroundColor Yellow
         } else {
             New-NetFirewallRule -DisplayName $RuleName -Direction Inbound -Action Block -Program (Get-Location).Path -Profile Any
             New-NetFirewallRule -DisplayName $RuleName -Direction Outbound -Action Block -Program (Get-Location).Path -Profile Any
-            Write-Console -Text "Firewall rules for blocking folder '$folderName' created successfully."
+            Write-Host "Firewall rules for blocking folder '$RuleName' created successfully." -ForegroundColor Green
         }
     }
 }
@@ -59,12 +56,10 @@ function New-NetFirewallRule-CurrentDirectory {
         if ($list) {
             $rules = ListScriptCreatedFirewallRules
             if ($rules) {
-                Write-Divider -Strong
-                Write-Console -Text "Listing all script-created firewall rules:"
-                $rules | ForEach-Object { Write-Console -Text "$($_.DisplayName): $($_.Direction) - $($_.Action)" }
-                Write-Divider -Strong
+                Write-Host "Listing all script-created firewall rules:" -ForegroundColor Cyan
+                $rules | ForEach-Object { Write-Host "$($_.DisplayName): $($_.Direction) - $($_.Action)" }
             } else {
-                Write-Console -Text "No script-created firewall rules found."
+                Write-Host "No script-created firewall rules found." -ForegroundColor Yellow
             }
         } elseif ($check) {
             CheckFirewallRuleExists -RuleName $ruleName
@@ -72,7 +67,8 @@ function New-NetFirewallRule-CurrentDirectory {
             CheckAndExecuteRule -RuleName $ruleName -Remove:$delete
         }
     } catch {
-        ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
+        Write-Error "An error occurred: $_.Exception.Message"
+        Write-Host "Stack Trace: $_.Exception.StackTrace" -ForegroundColor Red
     }
 }
 
