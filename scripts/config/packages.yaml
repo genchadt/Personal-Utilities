@@ -1,0 +1,530 @@
+packages:
+  # Core Utilities
+  - id: AutoHotkey.AutoHotkey
+    name: AutoHotkey
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: flux.flux
+    name: Flux
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  # Audio and Video
+  - id: Audacity.Audacity
+    name: Audacity
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  - id: Gyan.FFmpeg
+    name: FFmpeg
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: VideoLAN.VLC
+    name: VLC
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  # Development Tools
+  - id: DevToys-app.DevToys
+    name: DevToys
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  - id: Git.Git
+    name: Git
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Golang.Go
+    name: Golang
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: Microsoft.VisualStudio.2022.Community
+    install-args: "--interactive"
+    name: Visual Studio 2022
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: Microsoft.VisualStudioCode
+    name: VS Code
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Microsoft.VisualStudioCode.Insiders
+    name: VS Code Insiders
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  - id: Neovim.Neovim
+    name: Neovim
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Python.Python.3.12
+    install-args: "--interactive"
+    name: Python 3.12
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  # File Management and Sharing
+  - id: Google.Drive
+    name: Google Drive
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  # Games
+  - id: OpenRCT2.OpenRCT2
+    name: OpenRCT2
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  - id: OpenTTD.OpenTTD
+    name: OpenTTD
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  # Gaming
+  - id: Codeusa.BorderlessGaming
+    name: Borderless Gaming
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  - id: Valve.Steam
+    name: Steam
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  # Internet and Networking
+  - id: Discord.Discord
+    name: Discord
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: eloston.ungoogled-chromium
+    name: Ungoogled Chromium
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Mozilla.Firefox
+    name: Firefox
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: MullvadVPN.MullvadVPN
+    name: Mullvad VPN
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: qBittorrent.qBittorrent
+    name: qBittorrent
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: Zoom.Zoom
+    name: Zoom
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  # Multimedia
+  - id: calibre.calibre
+    name: Calibre
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: Spotify.Spotify
+    name: Spotify
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  # Package Management
+  - id: JFrog.Conan
+    name: Conan
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: MartiCliment.UniGetUI
+    install-args: "--interactive"
+    name: WingetUIStore
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  # Productivity and Office
+  - id: SumatraPDF.SumatraPDF
+    name: SumatraPDF
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  # Security and Privacy
+  - id: Bitwarden.Bitwarden
+    name: Bitwarden
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  # System Tools
+  - id: 7zip.7zip
+    name: 7zip
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: ajeetdsouza.zoxide
+    name: Zoxide
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: alexx2000.DoubleCommander
+    name: Double Commander
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: fzf
+    name: fzf
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: gokcehan.lf
+    name: lf (Terminal File Manager)
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: gsass1.NTop
+    name: NTop
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: JanDeDobbeleer.OhMyPosh
+    name: Oh My Posh
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Microsoft.PowerToys
+    name: PowerToys
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Microsoft.Sysinternals.ProcessExplorer
+    name: Process Explorer
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Microsoft.Sysinternals.TCPView
+    name: TCPView
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: Microsoft.WindowsTerminal
+    name: Windows Terminal
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: NirSoft.NirCmd
+    name: NirCmd
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  - id: Ookla.Speedtest.CLI
+    name: Speedtest CLI
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional      
+
+  - id: Safing.Portmaster
+    name: Portmaster
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: ShareX.ShareX
+    name: ShareX
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Limited
+      - Standard
+
+  - id: WiresharkFoundation.Wireshark
+    name: Wireshark
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
+  - id: xanderfrangos.twinkletray
+    name: TwinkleTray
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  # Scoop Packages
+  - id: nerd-fonts
+    name: Nerd Fonts
+    managers:
+      winget:
+        available: false
+      scoop:
+        available: true
+        bucket: nerd-fonts
+    categories:
+      - Optional
+
+  - id: librespeed-cli
+    name: librespeed-cli
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: true
+        bucket: extras
+    categories:
+      - Limited
+      - Standard
