@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     !! This script must be run with Administrator privileges. !!
-    This script extracts image files to CWD and then compresses them to *.CHD format. Ensure that 7-zip and chdman are installed!
+    This script extracts image files to CWD and then compresses them to *.CHD format. Ensure that 7-zip and chdman are installed and added to PATH!
 
 .PARAMETER DeleteArchive
     Deletes the source archive automatically without prompting.
@@ -12,14 +12,8 @@
 .PARAMETER DeleteImage
     Deletes the source image automatically without prompting.
 
-.PARAMETER Help
-    Displays this help message.
-
 .PARAMETER Force
     Overwrites existing files without prompting.
-
-.PARAMETER NoLog
-    Does not write to the log file.
 
 .PARAMETER SilentMode
     Suppresses console output.
@@ -44,7 +38,7 @@
 
 .OUTPUTS
     String
-    Logs actions to console and log file, if specified.
+    Logs actions to console.
 
 .LINK
     7-Zip: [7-Zip Website](https://www.7-zip.org)
@@ -55,10 +49,10 @@
     Ensure required programs are installed and added to PATH.
     Required programs: 7-zip, chdman
 
-    Script Version: 1.1.2
+    Script Version: 1.2.0
     Author: Chad
     Creation Date: 2023-12-07 03:30:00 GMT
-    Last Updated: 2024-02-04 03:30:00 GMT
+    Last Updated: 2024-04-27 03:30:00 GMT
 #>
 
 ###############################################
@@ -66,27 +60,20 @@
 ###############################################
 
 param (
-    [alias("f")][switch]$Force,             # Force overwriting
-    [alias("silent")][switch]$SilentMode,   # Silent mode
-    [alias("sa")][switch]$SkipArchive       # Skip archive extraction
+    [Alias("f")][switch]$Force,               # Force overwriting
+    [Alias("silent")][switch]$SilentMode,    # Silent mode
+    [Alias("sa")][switch]$SkipArchive,       # Skip archive extraction
+    [switch]$DeleteArchive,                   # Delete the archive after extraction
+    [switch]$DeleteImage                      # Delete the image after compression
 )
 
 ###############################################
-# Imports
+# Ensure Admin Privileges
 ###############################################
 
-Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
-Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
-Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
-
-try {
-    if (!(Get-Module 7Zip4Powershell -ListAvailable)) { Install-Module 7Zip4Powershell }
-
-    Import-Module 7Zip4Powershell
-}
-catch { 
-    Write-Console "Issue encountered while importing 7Zip4Powershell!"
-    ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace -Severity Error
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Error "This script requires administrative privileges. Please run as Administrator."
+    exit 1
 }
 
 ###############################################
@@ -94,176 +81,279 @@ catch {
 ###############################################
 
 $ScriptAttributes = @{
-    LogFile                     = "logs\Optimize-PSX.log"
-    StartTime                   = 0
-    Version                     = "1.1.2"
+    LogFile       = "logs\Optimize-PSX.log"
+    StartTime     = Get-Date
+    Version       = "1.2.0"
 }
 
 $FileOperations = @{
-    ArchiveFileList             = @()
-    CHDFileList                 = @()
-    ImageFileList               = @()
-    FileSizeCHD                 = @()
-    FileSizeImage               = @()
-    TotalFileConversions        = 0
-    TotalFileExtractions        = 0
-    TotalFileOperations         = 0
+    ArchiveFileList      = @()
+    CHDFileList          = @()
+    ImageFileList        = @()
+    FileSizeCHD          = 0
+    FileSizeImage        = 0
+    TotalFileConversions = 0
+    TotalFileExtractions = 0
+    TotalFileOperations  = 0
+    DeletionCandidates   = @()
+    InitialDirectorySize = 0
+    FinalDirectorySize   = 0
 }
 
 ###############################################
 # Functions
 ###############################################
 
-function Expand-Archives() {
+function Expand-Archives {
     param (
         [string]$Path
     )
 
-    $extractedFilesSize = 0
+    if (-not $SilentMode) {
+        Write-Host "Entering Archive Mode..." -ForegroundColor Cyan
+        Write-Host "==========================================" -ForegroundColor DarkGray
+    }
 
-    Write-Console "Entering Archive Mode...";
-    Write-Divider -Strong
-    $archives = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.7z|\.gz|\.rar|\.zip' }
-    
+    # Ensure the 7Zip4Powershell module is loaded
+    if (!(Get-Module -Name 7Zip4Powershell)) {
+        try {
+            Import-Module -Name 7Zip4Powershell -ErrorAction Stop
+            if (-not $SilentMode) {
+                Write-Host "7Zip4Powershell module loaded successfully." -ForegroundColor Cyan
+            }
+        }
+        catch {
+            Write-Error "Failed to load 7Zip4Powershell module: $_"
+            return
+        }
+    }
+
+    # Get all supported archive files
+    $archives = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.7z$|\.gz$|\.rar$|\.zip$' }
+
     if ($archives.Count -eq 0) {
-        Write-Console "Archive Mode skipped: No archive files found!" -MessageType Info
-        Write-Divider
+        if (-not $SilentMode) {
+            Write-Host "Archive Mode skipped: No archive files found!" -ForegroundColor Cyan
+            Write-Host "------------------------------------------" -ForegroundColor DarkGray
+        }
         return
     }
 
     foreach ($archive in $archives) {
         $extractDestination = Join-Path $archive.Directory.FullName $archive.BaseName
+        $FileOperations.ArchiveFileList += $archive.FullName
 
         # Hash archive
         try {
-            Write-Console "Hashing archive: `"$($archive.FullName)`""
+            if (-not $SilentMode) {
+                Write-Host "Hashing archive: $($archive.FullName)" -ForegroundColor Cyan
+            }
             $hashValue = Get-FileHash -Algorithm SHA256 -LiteralPath $archive.FullName | Select-Object -ExpandProperty Hash
-            Write-Console "SHA-256 hash: $hashValue"
-            Write-Divider
+            if (-not $SilentMode) {
+                Write-Host "SHA-256 hash: $hashValue" -ForegroundColor Cyan
+                Write-Host "------------------------------------------" -ForegroundColor DarkGray
+            }
         }
-        catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+        catch {
+            Write-Error "Failed to hash archive '$($archive.FullName)': $_"
+            continue
+        }
 
-        # Extract archive
+        # Extract archive using 7Zip4Powershell
         try {
-            Write-Console "Extracting archive: `"$($archive.FullName)`""
+            if (-not $SilentMode) {
+                Write-Host "Extracting archive: $($archive.FullName)" -ForegroundColor Cyan
+            }
+
+            # Use 7Zip4Powershell's Expand-7Zip cmdlet to extract the archive
             Expand-7Zip -ArchiveFileName $archive.FullName -TargetPath $extractDestination
-            $FileOperations.TotalFileExtractions++; $FileOperations.TotalFileOperations++
-            Write-Console "Extraction complete."
-            Write-Divider -Strong
+
+            $FileOperations.TotalFileExtractions++
+            $FileOperations.TotalFileOperations++
+
+            if (-not $SilentMode) {
+                Write-Host "Extraction complete." -ForegroundColor Green
+                Write-Host "==========================================" -ForegroundColor DarkGray
+            }
         }
-        catch { 
-            Write-Console "Issue encountered while extracting archive!"
-            ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace
+        catch {
+            Write-Error "Issue encountered while extracting archive '$($archive.FullName)': $_"
+            continue
         }
 
-        # Determine total file size of all extracted files
-        $extractedFiles = Get-ChildItem -Path $extractDestination -Recurse
-        foreach ($extractedFile in $extractedFiles) {
-            $extractedFilesSize += $extractedFile.Length
-        }
-
-        # Move all .bin/.cue/.iso files to the parent folder
-        $imageFiles = Get-ChildItem -Path $extractDestination -Filter *.* -Include *.bin, *.cue, *.gdi, *.iso, *.raw -Recurse
+        # Move all .bin/.cue/.iso/.gdi/.raw files to the parent folder
+        $imageFiles = Get-ChildItem -Path $extractDestination -Recurse -Include *.bin, *.cue, *.gdi, *.iso, *.raw -File
         foreach ($imageFile in $imageFiles) {
             $destinationPath = Join-Path $PWD $imageFile.Name
-            Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force
-            $FileOperations.TotalFileOperations++
-        }       
+            try {
+                Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force
+                $FileOperations.TotalFileOperations++
+                $FileOperations.ImageFileList += $imageFile.Name
+                if (-not $SilentMode) {
+                    Write-Host "Moved file: $($imageFile.FullName) to $destinationPath" -ForegroundColor Cyan
+                }
+            }
+            catch {
+                Write-Error "Failed to move file '$($imageFile.FullName)': $_"
+            }
+        }
     }
-    
-    return $result
+
+    # Update FileSizeImage
+    $FileOperations.FileSizeImage = (Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.bin$|\.cue$|\.iso$|\.gdi$|\.raw$' } | Measure-Object -Property Length -Sum).Sum
 }
 
-function Compress-Images() {
+function Compress-Images {
     param (
         [string]$Path
     )
 
-    Write-Console "Entering Image Mode..."
-    Write-Divider -Strong
-    $images = Get-ChildItem -Recurse -Filter *.* | Where-Object { $_.Extension -match '\.cue|\.gdi|\.iso' }
+    if (-not $SilentMode) {
+        Write-Host "Entering Image Mode..." -ForegroundColor Cyan
+        Write-Host "==========================================" -ForegroundColor DarkGray
+    }
+
+    $images = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.cue$|\.gdi$|\.iso$' }
 
     if ($images.Count -eq 0) {
-        Write-Console "Image Mode skipped: No image files found!" -MessageType Warning
-        Write-Divider
+        if (-not $SilentMode) {
+            Write-Host "Image Mode skipped: No image files found!" -ForegroundColor Yellow
+            Write-Host "------------------------------------------" -ForegroundColor DarkGray
+        }
         return
     }
 
     foreach ($image in $images) {
         $chdFilePath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
-        $resolvedPath = (Resolve-Path -Path `"$chdFilePath`" -ErrorAction SilentlyContinue)?.Path
+        $resolvedPath = Resolve-Path -Path $chdFilePath -ErrorAction SilentlyContinue
 
-        if ($null -eq $resolvedPath) {
+        if (-not $resolvedPath) {
             $resolvedPath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
-        }        
+        }
 
-        $forceOverwrite = $Force -or $F
-        if (!$forceOverwrite -and (Test-Path `"$resolvedPath`")) {
-            $relativePath = (Resolve-Path -Path $chdFilePath -Relative).Path
-            $overwrite = $null
+        $forceOverwrite = $Force
+        if (-not $forceOverwrite -and (Test-Path -Path $chdFilePath)) {
+            $relativePath = (Resolve-Path -Path $chdFilePath).Path -replace [regex]::Escape($PWD), '.\'
+            $overwrite = ""
             while ($overwrite -notin @('Y', 'N')) {
-                Write-Console
-                $overwrite = Read-Console "File .\$($relativePath) already exists. Do you want to overwrite?" -Prompt YN -MessageType Warning
+                $overwrite = Read-Host "File $relativePath already exists. Do you want to overwrite? (Y/N)"
                 $overwrite = $overwrite.ToUpper()
+                if ($overwrite -notin @('Y', 'N')) {
+                    Write-Host "Invalid input. Please enter Y or N." -ForegroundColor Yellow
+                }
             }
 
             if ($overwrite -eq 'N') {
-                Write-Console "Conversion skipped for $($image.FullName)"
-                Write-Divider
+                if (-not $SilentMode) {
+                    Write-Host "Conversion skipped for $($image.FullName)" -ForegroundColor Yellow
+                    Write-Host "------------------------------------------" -ForegroundColor DarkGray
+                }
                 continue
             }
         }
 
-        $convertCommand = "chdman createcd -i `"$($image.FullName)`" -o `"$resolvedPath`""
-        
-        if ($forceOverwrite -or $Force -or ($overwrite -eq 'Y')) {
+        $convertCommand = "chdman createcd -i `"$($image.FullName)`" -o `"$chdFilePath`""
+        if ($forceOverwrite) {
             $convertCommand += " --force"
         }
 
-        Write-Console "Converting image: $($image.FullName)"
-        Invoke-Command $convertCommand
-        Write-Divider
+        if (-not $SilentMode) {
+            Write-Host "Converting image: $($image.FullName)" -ForegroundColor Cyan
+        }
 
-        $FileOperations.CHDFileList += $resolvedPath
-        $FileOperations.TotalFileConversions++; $FileOperations.TotalFileOperations++       
+        try {
+            Invoke-Expression $convertCommand
+            $FileOperations.CHDFileList += $chdFilePath
+            $FileOperations.TotalFileConversions++
+            $FileOperations.TotalFileOperations++
+
+            if (-not $SilentMode) {
+                Write-Host "Conversion complete for $($image.FullName)" -ForegroundColor Green
+                Write-Host "------------------------------------------" -ForegroundColor DarkGray
+            }
+        }
+        catch {
+            Write-Error "Failed to convert image '$($image.FullName)': $_"
+        }
     }
+
+    # Update FileSizeCHD
+    $FileOperations.FileSizeCHD = (Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -eq '.chd' } | Measure-Object -Property Length -Sum).Sum
 }
 
 function Remove-DeletionCandidates {
-    Write-Console "File Deletion Candidates:"
-    Write-Divider -Strong
-    foreach ($candidate in $FileOperations.DeletionCandidates) {
-        Write-Console "    + $candidate"
+    param (
+        [string]$Path
+    )
+
+    # Identify deletion candidates
+    $archives = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.7z$|\.gz$|\.rar$|\.zip$' }
+    $images = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.bin$|\.cue$|\.iso$|\.gdi$|\.raw$' }
+
+    $FileOperations.DeletionCandidates = $archives + $images
+
+    if ($FileOperations.DeletionCandidates.Count -eq 0) {
+        if (-not $SilentMode) {
+            Write-Host "No files to delete." -ForegroundColor Cyan
+        }
+        return
     }
-    Write-Divider
+
+    if (-not $SilentMode) {
+        Write-Host "File Deletion Candidates:" -ForegroundColor Cyan
+        Write-Host "==========================================" -ForegroundColor DarkGray
+        foreach ($candidate in $FileOperations.DeletionCandidates) {
+            Write-Host "    + $($candidate.FullName)" -ForegroundColor Cyan
+        }
+        Write-Host "------------------------------------------" -ForegroundColor DarkGray
+    }
 
     foreach ($candidate in $FileOperations.DeletionCandidates) {
-        $userChoice = $null
-
+        $userChoice = ""
         while ($userChoice -notin @('Y', 'A', 'N', 'D')) {
-            $userChoice = Read-Console -Text "Are you sure you want to delete $candidate? (Y)es/(A)ll/(N)o/(D)one" -Prompt "YNAD" -MessageType Warning
+            $userChoice = Read-Host "Are you sure you want to delete '$($candidate.FullName)'? (Y)es/(A)ll/(N)o/(D)one"
             $userChoice = $userChoice.ToUpper()
+            if ($userChoice -notin @('Y', 'A', 'N', 'D')) {
+                Write-Host "Invalid input. Please enter one of the following: Y, A, N, D." -ForegroundColor Yellow
+            }
         }
 
         switch ($userChoice) {
-            'Y' { 
-                Write-Console "Deleting $candidate"
-                Remove-ItemSafely -Path $candidate
-                $FileOperations.TotalFileDeletions++
-                $FileOperations.TotalFileOperations++
+            'Y' {
+                try {
+                    Remove-Item -Path $candidate.FullName -Force
+                    $FileOperations.TotalFileOperations++
+                    if (-not $SilentMode) {
+                        Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
+                    }
+                }
+                catch {
+                    Write-Error "Failed to delete '$($candidate.FullName)': $_"
+                }
             }
-            'A' { 
-                Write-Console "Deleting $candidate"
-                Remove-ItemSafely -Path $candidate
-                $FileOperations.TotalFileDeletions++
-                $FileOperations.TotalFileOperations++
+            'A' {
+                try {
+                    Remove-Item -Path $candidate.FullName -Force
+                    $FileOperations.TotalFileOperations++
+                    if (-not $SilentMode) {
+                        Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
+                    }
+                }
+                catch {
+                    Write-Error "Failed to delete '$($candidate.FullName)': $_"
+                }
+                # Continue deleting without further prompts
                 continue
             }
-            'N' { 
-                Write-Console "Skipping $candidate"
+            'N' {
+                if (-not $SilentMode) {
+                    Write-Host "Skipping deletion of: $($candidate.FullName)" -ForegroundColor Yellow
+                }
             }
-            'D' { 
-                Write-Console "No further deletions to be made."
+            'D' {
+                if (-not $SilentMode) {
+                    Write-Host "No further deletions will be made." -ForegroundColor Yellow
+                }
                 return
             }
         }
@@ -271,24 +361,26 @@ function Remove-DeletionCandidates {
 }
 
 function Summarize {
-    # Get size differences (i.e difference in file size between raw image files and converted chd files)
-    #
-    #
-
-    $StartTime = $ScriptAttributes.StartTime
     $EndTime = Get-Date
-    $EstimatedRuntime = $EndTime - $StartTime
+    $EstimatedRuntime = $EndTime - $ScriptAttributes.StartTime
 
-    # Define ANSI color codes
-    # $green = "`e[32m"
-    # $red = "`e[31m"
-    # $yellow = "`e[33m"
-    # $reset = "`e[0m"
+    # Calculate size differences
+    $sizeDifferenceBytes = $FileOperations.FileSizeImage - $FileOperations.FileSizeCHD
+    $sizeDifferenceMB = [math]::Round($sizeDifferenceBytes / 1MB, 2)
+    if ($sizeDifferenceBytes -gt 0) {
+        $savedOrLost = "Saved"
+    }
+    elseif ($sizeDifferenceBytes -lt 0) {
+        $savedOrLost = "Increased"
+        $sizeDifferenceMB = [math]::Abs($sizeDifferenceMB)
+    }
+    else {
+        $savedOrLost = "No Change"
+    }
 
     # Summary Data
     $summaryData = @(
-
-        [PSCustomObject]@{ Description = "File Size Difference"; Value = "$$SpaceDifferenceBytes bytes ($SpaceDifferenceMB MB) $SavedOrLost" }
+        [PSCustomObject]@{ Description = "File Size Difference"; Value = "$sizeDifferenceBytes bytes ($sizeDifferenceMB MB) $savedOrLost" }
         [PSCustomObject]@{ Description = "Total Archives Extracted"; Value = "$($FileOperations.TotalFileExtractions)" }
         [PSCustomObject]@{ Description = "Total Images Converted"; Value = "$($FileOperations.TotalFileConversions)" }
         [PSCustomObject]@{ Description = "Total Operations"; Value = "$($FileOperations.TotalFileOperations)" }
@@ -296,57 +388,87 @@ function Summarize {
     )
 
     # Output the summary using Format-Table
+    Write-Host "Optimization Summary:" -ForegroundColor Cyan
     $summaryData | Format-Table -AutoSize
 
-    Write-Console "CHD Files Created Successfully:"
-    foreach ($file in $FileOperations.CHDFileList) {
-        Write-Console "    + $file"
+    # List created CHD files
+    if ($FileOperations.CHDFileList.Count -gt 0) {
+        Write-Host "CHD Files Created Successfully:" -ForegroundColor Green
+        foreach ($file in $FileOperations.CHDFileList) {
+            Write-Host "    + $file" -ForegroundColor Green
+        }
     }
-    Write-Divider -Strong
+    else {
+        Write-Host "No CHD files were created." -ForegroundColor Yellow
+    }
+
+    Write-Host "==========================================" -ForegroundColor DarkGray
 }
 
 ###############################################
-# Main
+# Main Logic
 ###############################################
 
-function Optimize-PSX() {
+function Optimize-PSX {
     param (
-        [string]$Path
+        [string]$Path = $PWD
     )
 
     try {
         $ScriptAttributes.StartTime = Get-Date
-        $initial_directory_size = Get-CurrentDirectorySize
-        $FileOperations.InitialDirectorySize = $initial_directory_size.Kilobytes
-    
-        Write-Divider -Strong
-        Write-Console "Optimize-PSX Script $($ScriptAttributes.Version)" -NoLog
-        Write-Console "Written in PowerShell 7.4.1" -NoLog
-        Write-Console "Uses 7-Zip: https://www.7-zip.org" -NoLog
-        Write-Console "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -NoLog
-        Write-Divider -Strong
+        $initial_directory_size = (Get-ChildItem -Path $Path -Recurse -File | Measure-Object -Property Length -Sum).Sum
+        $FileOperations.InitialDirectorySize = $initial_directory_size
 
-        if (!$SkipArchive) {
-            Expand-Archives(Get-Location)
+        if (-not $SilentMode) {
+            Write-Host "Optimize-PSX Script $($ScriptAttributes.Version)" -ForegroundColor Cyan
+            Write-Host "Written in PowerShell" -ForegroundColor Cyan
+            Write-Host "Uses 7-Zip: https://www.7-zip.org" -ForegroundColor Cyan
+            Write-Host "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -ForegroundColor Cyan
+            Write-Host "==========================================" -ForegroundColor DarkGray
+        }
+
+        if (-not $SkipArchive) {
+            Expand-Archives -Path $Path
             if ($DeleteArchive) {
                 Start-Sleep -Seconds 2
-                Get-Process | Where-Object { $_.ProcessName -like '7z*' } | Stop-Process -Force
+                $archivesToDelete = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.7z$|\.gz$|\.rar$|\.zip$' }
+                foreach ($archive in $archivesToDelete) {
+                    try {
+                        Remove-Item -Path $archive.FullName -Force
+                        $FileOperations.TotalFileOperations++
+                        if (-not $SilentMode) {
+                            Write-Host "Deleted archive: $($archive.FullName)" -ForegroundColor Green
+                        }
+                    }
+                    catch {
+                        Write-Error "Failed to delete archive '$($archive.FullName)': $_"
+                    }
+                }
             }
-        } else {
-            Write-Console "Archive Mode Skipped: User declined archive mode." -MessageType Warning
+        }
+        else {
+            if (-not $SilentMode) {
+                Write-Host "Archive Mode Skipped: User declined archive extraction." -ForegroundColor Yellow
+            }
         }
 
-        Compress-Images(Get-Location)
+        Compress-Images -Path $Path
 
         if ($DeleteArchive -or $DeleteImage) {
-            Remove-DeletionCandidates(Get-Location)
+            Remove-DeletionCandidates -Path $Path
         }
-    
-        $final_directory_size = Get-CurrentDirectorySize
-        $FileOperations.FinalDirectorySize = $final_directory_size.Kilobytes
-    
+
+        $final_directory_size = (Get-ChildItem -Path $Path -Recurse -File | Measure-Object -Property Length -Sum).Sum
+        $FileOperations.FinalDirectorySize = $final_directory_size
+
         Summarize
-    } catch { ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace }
+    }
+    catch {
+        Write-Error "Optimization failed: $_"
+    }
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Optimize-PSX }
+# Execute the function if the script is run directly
+if ($MyInvocation.InvocationName -ne '.') {
+    Optimize-PSX
+}
