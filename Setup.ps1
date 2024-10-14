@@ -130,6 +130,23 @@ function Install-Packages {
     }
 }
 
+function Install-Extras {
+    $package = winget list --id Spotify.Spotify 2>&1
+
+    try {
+        if ($package -like "*Spotify.Spotify*") {
+            if (Prompt-YesNo -Message "Spotify.Spotify is installed. Would you like to install Spicetify?" -Default "Y") {
+                ./scripts/Update-Spicetify.ps1
+            }
+        } else {
+            Write-Host "Spotify installation was not found."
+            Write-Host "Spicetify installation is not possible."
+        }
+    } catch {
+        Write-Warning "Failed to install Spicetify: $_"
+    }
+}
+
 function Request-RestartExplorer {
     Write-Host "Package installation complete."
     if (Prompt-YesNo -Message "Do you want to restart Explorer.exe to apply changes now?" -Default "Y") {
@@ -183,6 +200,7 @@ function Setup {
     Enable-DetailedStatusMessages
     Add-ScriptsFolderToPath
     Install-Packages
+    Install-Extras
     Request-RestartExplorer
 }
 
