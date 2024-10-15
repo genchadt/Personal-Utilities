@@ -166,17 +166,14 @@ function Setup {
     Install-Office
     Restore-Activation
 
-    # Initialize update flag
     $updatePerformed = $false
 
     Write-Host "Checking for updates..."
 
-    # PowerShell update
     if (Update-PowerShell) {
         $updatePerformed = $true
     }
 
-    # winget update
     if (Update-Winget) {
         $updatePerformed = $true
     }
@@ -195,6 +192,4 @@ function Setup {
     Request-RestartExplorer
 }
 
-if ($MyInvocation.InvocationName -ne '.') {
-    Setup
-}
+Setup
