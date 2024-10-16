@@ -64,6 +64,39 @@ packages:
       - Limited
       - Standard
 
+  # Compilers and Interpreters
+  - id: Golang.Go
+    name: Golang
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: Python.Python
+    install-args: "--interactive"
+    name: Python
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
+  - id: MSYS2.MSYS2
+    install-args: "--interactive"
+    name: MSYS2
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
   # Development Tools
   - id: DevToys-app.DevToys
     name: DevToys
@@ -84,16 +117,6 @@ packages:
         available: false
     categories:
       - Limited
-      - Standard
-
-  - id: Golang.Go
-    name: Golang
-    managers:
-      winget:
-        available: true
-      scoop:
-        available: false
-    categories:
       - Standard
 
   - id: Microsoft.VisualStudio.2022.Community
@@ -137,17 +160,6 @@ packages:
         available: false
     categories:
       - Limited
-      - Standard
-
-  - id: Python.Python.3.12
-    install-args: "--interactive"
-    name: Python 3.12
-    managers:
-      winget:
-        available: true
-      scoop:
-        available: false
-    categories:
       - Standard
 
   # File Management and Sharing
@@ -495,6 +507,16 @@ packages:
         available: false
     categories:
       - Limited
+      - Standard
+
+  - id: sharkdp.fd
+    name: fd
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
       - Standard
 
   - id: WiresharkFoundation.Wireshark
