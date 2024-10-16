@@ -49,7 +49,13 @@ function Update-GithubProfiles {
     )
 
     Write-Console "Test"
-    $repos = Get-Configuration -FilePath $ConfigurationPath
+    try {
+        $repos = Get-Configuration -FilePath $ConfigurationPath
+    }
+    catch {
+        Write-Error "Failed to load configuration from ${$ConfigurationPath}: $_"
+        return
+    }
     $totalRepos = $repos.Count
     $repoIndex = 0
     $changesApplied = @{}
