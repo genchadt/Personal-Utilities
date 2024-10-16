@@ -29,13 +29,6 @@
 #>
 
 ###############################################
-# Parameters
-###############################################
-param (
-    [string]$ConfigurationPath = "$PSScriptRoot/config/profiles_github.json"
-)
-
-###############################################
 # Imports
 ###############################################
 Import-Module "$PSScriptRoot/lib/ErrorHandling.psm1"
@@ -48,6 +41,13 @@ Import-Module "$PSScriptRoot/lib/TextHandling.psm1"
 ###############################################
 
 function Update-GithubProfiles {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false)]
+        [ValidateScript({ Test-Path $_ })]
+        [string]$ConfigurationPath = "$PSScriptRoot/config/profiles_github.json"        
+    )
+
     Write-Console "Test"
     $repos = Get-Configuration -FilePath $ConfigurationPath
     $totalRepos = $repos.Count
