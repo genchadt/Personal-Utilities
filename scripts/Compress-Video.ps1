@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-   Compress-Video.ps1 - A PowerShell script to simplify video compression using FFmpeg. 
+   Compress-Video.ps1 - A PowerShell script to simplify video compression using FFmpeg.
 
 .DESCRIPTION
-   This script is designed to save file space while preserving as much qu ality as possible.
+   This script is designed to save file space while preserving as much quality as possible.
 
 .PARAMETER VideoPath
-   The optional path to the video file to be compressed. If not specified, the script prompts for each '.mp4' file in the current directory.
+   The optional path to the video file to be compressed. If not specified, the script processes all '.mp4' files in the current directory.
 
 .PARAMETER IgnoreCompressed
    Determines whether the script should ignore already compressed files.
@@ -20,7 +20,7 @@
 
 .EXAMPLE
    .\Compress-Video.ps1
-   Prompts for each '.mp4' file in the current directory and compresses them based on user input.
+   Processes all '.mp4' files in the current directory.
 
 .NOTES
    Requires FFmpeg in the system's PATH. Modify compression settings in the `Compress-Video` function.
@@ -37,14 +37,6 @@ param (
 )
 
 ###############################################
-# Imports
-###############################################
-
-Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
-Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
-Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
-
-###############################################
 # Functions
 ###############################################
 
@@ -58,11 +50,12 @@ function Compress-Video {
    $search_pattern = "*.mp4"
    $video_files = @()
 
+   # If no path is provided, work in the current directory
    if (-not $VideoPath) {
       $VideoPath = Get-Location
-      $video_files = Get-ChildItem -Force -Path "." -Filter $search_pattern -File
+      $video_files = Get-ChildItem -Force -Path $VideoPath -Filter $search_pattern -File
    } else {
-      $video_files = @(Get-Item $VideoPath)
+      $video_files = @(Get-Item -Force $VideoPath)
    }
 
    $confirmation_responses = @{}
@@ -70,18 +63,19 @@ function Compress-Video {
    foreach ($file in $video_files) {
       if ($file.Name -like "*_compressed*") {
          if ($IgnoreCompressed) {
-            Write-Console -Text "Skipping already compressed file: $($file.Name)" -MessageType Info
+            Write-Host "Skipping already compressed file: $($file.Name)" -ForegroundColor Green
             continue
          } else {
-            $confirmation_responses[$file.Name] = Read-Console -Text "The file '$($file.Name)' appears to be already compressed. Do you want to recompress it?" -Prompt "YN" -MessageType Warning
-            if ($confirmation_responses[$file.Name] -ne 'Y') {
-               Write-Console -Text "Skipping: $($file.Name)" -MessageType Info
+            $response = Read-Host "The file '$($file.Name)' appears to be already compressed. Do you want to recompress it? (Y/N)"
+            if ($response -ne 'Y') {
+               Write-Host "Skipping: $($file.Name)" -ForegroundColor Yellow
                continue
             }
          }
-      } else {
-         $confirmation_responses[$file.Name] = 'Y' # Default to compress if not already compressed
       }
+
+      # Add to list of files to be compressed
+      $confirmation_responses[$file.Name] = 'Y'
    }
 
    foreach ($file in $video_files) {
@@ -90,32 +84,44 @@ function Compress-Video {
       }
 
       $output_path = Join-Path (Split-Path $file.FullName) "$($([System.IO.Path]::GetFileNameWithoutExtension($file.FullName)))_compressed.mp4"
-      $bitrate = "1000k"
-      $ffmpeg_args = '-i', $file.FullName, '-c:v', 'libx265', '-crf', '28', '-preset', 'slow', '-b:v', $bitrate, '-c:a', 'copy', $output_path
+
+      # FFmpeg arguments
+      $ffmpeg_args = @(
+         '-i', $file.FullName,
+         '-c:v', 'libx265',
+         '-crf', '28',
+         '-preset', 'slow',
+         '-c:a', 'copy',
+         $output_path
+      )
 
       try {
-         Write-Console -Text "Compressing: $($file.FullName)" -MessageType Info
-         & ffmpeg $ffmpeg_args
+         Write-Host "Compressing: $($file.FullName)" -ForegroundColor Cyan
+         & ffmpeg @ffmpeg_args
          if ($LASTEXITCODE -eq 0) {
-            Write-Console -Text "Compression successful: $output_path" -MessageType Info
+            Write-Host "Compression successful: $output_path" -ForegroundColor Green
             if ($DeleteSource) {
                Remove-Item -Path $file.FullName -Force
-               Write-Console -Text "Deleted source file: $($file.FullName)" -MessageType Info
+               Write-Host "Deleted source file: $($file.FullName)" -ForegroundColor Yellow
             }
          } else {
-            Write-Console -Text "FFmpeg failed with exit code: $LASTEXITCODE" -MessageType Error
+            Write-Error "FFmpeg failed with exit code: $LASTEXITCODE"
          }
       } catch {
-         Write-Console -Text "Issue encountered while attempting to compress $($file.FullName)." -MessageType Error
-         ErrorHandling -ErrorMessage $_.Exception.Message -StackTrace $_.Exception.StackTrace -Severity Error
+         Write-Error "Issue encountered while attempting to compress $($file.FullName): $($_.Exception.Message)"
+         Write-Debug "StackTrace: $($_.Exception.StackTrace)"
       }
    }
 }
 
+###############################################
+# Execution
+###############################################
+
 $params = @{
-   VideoPath = $VideoPath
-   DeleteSource = $DeleteSource
+   VideoPath        = $VideoPath
    IgnoreCompressed = $IgnoreCompressed
+   DeleteSource     = $DeleteSource
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Compress-Video @params }
+Compress-Video @params
