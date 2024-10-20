@@ -432,7 +432,7 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
 # Load package configuration from YAML
 $packageConfig = Load-PackageConfig -configFile $configFile
 
-if ($packageConfig -eq $null) {
+if ($null -eq $packageConfig) {
     Write-Host "Failed to load package configuration. Exiting." -ForegroundColor Red
     exit
 }
