@@ -468,7 +468,13 @@ function Optimize-PSX {
     }
 }
 
-# Execute the function if the script is run directly
-if ($MyInvocation.InvocationName -ne '.') {
-    Optimize-PSX
+# Collect parameters from TOF
+params = @{
+    Force = $Force
+    SilentMode = $SilentMode
+    SkipArchive = $SkipArchive
+    DeleteArchive = $DeleteArchive
+    DeleteImage = $DeleteImage
 }
+
+Optimize-PSX @params
