@@ -404,18 +404,24 @@ function Show-PackageSelectionWindow {
 ###############################################
 
 # Ensure required modules are installed
-function Ensure-Module {
+function Test-Module {
     param (
         [string]$ModuleName
     )
     if (-not (Get-Module -ListAvailable -Name $ModuleName)) {
         Write-Host "$ModuleName module not found. Installing..." -ForegroundColor Yellow
-        Install-Module -Name $ModuleName -Scope CurrentUser -Force
+        try {
+            Install-Module -Name $ModuleName -Scope CurrentUser -Force
+        }
+        catch {
+            Write-Error "Test-Module: Failed to install $ModuleName module: $_"
+            exit
+        }
     }
     Import-Module $ModuleName -Force
 }
 
-Ensure-Module -ModuleName "powershell-yaml"
+Test-Module -ModuleName "powershell-yaml"
 
 # Ensure winget is installed
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
