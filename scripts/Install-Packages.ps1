@@ -17,7 +17,7 @@
 
 param (
     [Parameter(Position=0, Mandatory=$false)]
-    [string]$configFile = ".\config\packages.yaml",
+    [string]$configFile = "$PSScriptRoot\config\packages.yaml",
 
     [Parameter(Position=1, Mandatory=$false)]
     [switch]$force
