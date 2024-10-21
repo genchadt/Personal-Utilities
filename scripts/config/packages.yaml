@@ -334,6 +334,16 @@ packages:
       - Limited
       - Standard
 
+  - id: TeXstudio.TeXstudio
+    name: TeXstudio
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Optional
+
   # Security and Privacy
   - id: Bitwarden.Bitwarden
     name: Bitwarden
