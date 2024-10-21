@@ -25,23 +25,22 @@
 ###############################################
 # Parameters
 ###############################################
+
 param(
-    [string]$Path,
-    [string]$Filter,
+    [string]$Path = (Get-Location).Path,
+    [string]$Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc",
     [switch]$Force
 )
 
 ###############################################
 # Imports
 ###############################################
-Import-Module "$PSScriptRoot\lib\ErrorHandling.psm1"
-Import-Module "$PSScriptRoot\lib\TextHandling.psm1"
-Import-Module "$PSScriptRoot\lib\SysOperation.psm1"
+
+Import-Module "$PSScriptRoot\lib\helpers.psm1"
 
 ###############################################
 # Functions
 ###############################################
-Write-Console "Starting font installations..."
 
 function Install-Fonts {
     param(
@@ -50,28 +49,31 @@ function Install-Fonts {
         [switch]$Force
     )
 
-    # If no path is specified, use the current working directory
-    if (-not $Path) { $Path = $PWD }
-    if (-not $Filter) { $Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc" }
+    # Ensure path exists
+    if (-not (Test-Path -Path $Path)) {
+        Write-Host "The specified path does not exist: $Path" -ForegroundColor Red
+        return
+    }
 
-    $flag = $Force.IsPresent ? 0x14 : 0x10  # 0x10 for silent, 0x14 to also force replace existing files
+    $flag = if ($Force) { 0x14 } else { 0x10 }  # 0x10 for silent, 0x14 to force replace
 
     # Convert the filter into an array
-    $filters = $Filter -split ","
+    $filters = $Filter -split "," | ForEach-Object { $_.Trim() }
 
     # Get all font files matching the filter
     $font_files = Get-ChildItem -Path $Path -Recurse -Include $filters -File
 
     if ($font_files.Count -eq 0) {
-        Write-Console "No font files found in the specified directory."
+        Write-Host "No font files found in the specified directory." -ForegroundColor Yellow
         return
     }
 
+    # Install fonts using shell COM object
     $jobs = $font_files | ForEach-Object {
         Start-Job -ScriptBlock {
             param($filePath, $copyFlag)
             $shell = New-Object -ComObject Shell.Application
-            $fonts_directory = $shell.Namespace(0x14)
+            $fonts_directory = $shell.Namespace(0x14)  # 0x14 = Fonts folder
             if ($null -eq $fonts_directory) {
                 throw 'Failed to access the Fonts folder. Ensure you have the necessary permissions.'
             }
@@ -79,15 +81,27 @@ function Install-Fonts {
         } -ArgumentList $_.FullName, $flag
     }
 
+    # Wait for jobs to complete
     $jobs | Wait-Job
 
+    # Check results and clean up jobs
     $jobs | ForEach-Object {
-        $result = Receive-Job -Job $_
+        Receive-Job -Job $_
         Remove-Job -Job $_
-        $result
     }
 
-    Write-Console "All fonts installations completed."
+    Write-Host "All font installations completed." -ForegroundColor Green
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Install-Fonts -Path $Path -Filter $Filter -Force $Force }
+###############################################
+# Main script logic
+###############################################
+
+$params = @{
+    Path = $Path
+    Filter = $Filter
+    Force = $Force
+}
+
+Grant-Elevation
+Install-Fonts @params
