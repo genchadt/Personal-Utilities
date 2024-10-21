@@ -47,7 +47,7 @@ function Compress-Video {
       [switch]$DeleteSource
    )
 
-   $search_pattern = "*.mp4"
+   $search_pattern = "*.avi", "*.flv", "*.mp4", "*.mov", "*.mkv", "*.wmv"
    $video_files = @()
 
    # If no path is provided, work in the current directory
