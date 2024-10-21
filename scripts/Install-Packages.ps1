@@ -423,7 +423,7 @@ function Test-Module {
 
 Test-Module -ModuleName "powershell-yaml"
 
-# Ensure winget is installed
+# Is winget installed?
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Write-Host "winget is not installed. Please install it from https://github.com/microsoft/winget-cli/releases" -ForegroundColor Red
     exit
@@ -437,5 +437,4 @@ if ($null -eq $packageConfig) {
     exit
 }
 
-# Show package selection window
 Show-PackageSelectionWindow -packages $packageConfig.packages
