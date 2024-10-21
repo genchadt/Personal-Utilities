@@ -468,7 +468,6 @@ function Optimize-PSX {
     }
 }
 
-# Collect parameters from TOF
 params = @{
     Force = $Force
     SilentMode = $SilentMode

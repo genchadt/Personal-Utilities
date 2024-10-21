@@ -39,7 +39,7 @@ function Update-PowerShell {
 
         if ($currentVersion -lt $latestVersion) {
             Write-Host "A newer version of PowerShell is available: $latestVersion"
-            if (Prompt-YesNo -Message "Do you want to update PowerShell?" -Default "N") {
+            if (Read-PromptYesNo -Message "Do you want to update PowerShell?" -Default "N") {
                 $installer = $latestRelease.assets | Where-Object { $_.name -like "*win-x64.msi" } | Select-Object -First 1
                 $installerPath = "$env:TEMP\$($installer.name)"
                 Invoke-WebRequest -Uri $installer.browser_download_url -OutFile $installerPath
@@ -63,7 +63,7 @@ function Update-Winget {
 
         if (-not $wingetPath) {
             Write-Host "winget is not installed."
-            if (Prompt-YesNo -Message "Do you want to install winget?" -Default "Y") {
+            if (Read-PromptYesNo -Message "Do you want to install winget?" -Default "Y") {
                 winget install --id Microsoft.DesktopAppInstaller -e --source msstore
                 Write-Host "winget installed."
                 return $true
@@ -78,7 +78,7 @@ function Update-Winget {
                 $wingetUpgradeOutput = winget upgrade --id Microsoft.DesktopAppInstaller -e --source msstore 2>&1
                 if ($wingetUpgradeOutput -notmatch "No applicable update found") {
                     Write-Host "An update for winget is available (Installed: $installedVersion)."
-                    if (Prompt-YesNo -Message "Do you want to update winget?" -Default "N") {
+                    if (Read-PromptYesNo -Message "Do you want to update winget?" -Default "N") {
                         winget upgrade --id Microsoft.DesktopAppInstaller -e --source msstore
                         Write-Host "winget upgraded."
                         return $true
@@ -94,4 +94,4 @@ function Update-Winget {
     return $false
 }
 
-Export-ModuleMember -Function Grant-Elevation, Update-PowerShell, Update-Winget, Prompt-YesNo
+Export-ModuleMember -Function Grant-Elevation, Update-PowerShell, Update-Winget, Read-PromptYesNo
