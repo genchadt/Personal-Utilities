@@ -6,7 +6,7 @@
    This script is designed to save file space while preserving as much quality as possible.
 
 .PARAMETER VideoPath
-   The optional path to the video file to be compressed. If not specified, the script processes all '.mp4' files in the current directory.
+   The optional path to the video file to be compressed. If not specified, the script processes all supported video files in the current directory.
 
 .PARAMETER IgnoreCompressed
    Determines whether the script should ignore already compressed files.
@@ -20,7 +20,7 @@
 
 .EXAMPLE
    .\Compress-Video.ps1
-   Processes all '.mp4' files in the current directory.
+   Processes all supported video files in the current directory.
 
 .NOTES
    Requires FFmpeg in the system's PATH. Modify compression settings in the `Compress-Video` function.
@@ -47,15 +47,24 @@ function Compress-Video {
       [switch]$DeleteSource
    )
 
-   $search_pattern = "*.avi", "*.flv", "*.mp4", "*.mov", "*.mkv", "*.wmv"
+   $extensions = ".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv"
    $video_files = @()
 
    # If no path is provided, work in the current directory
    if (-not $VideoPath) {
       $VideoPath = Get-Location
-      $video_files = Get-ChildItem -Force -Path $VideoPath -Filter $search_pattern -File
-   } else {
+   }
+
+   if (Test-Path $VideoPath -PathType Container) {
+      # Get files matching the specified extensions
+      $video_files = Get-ChildItem -Force -Path $VideoPath -File | Where-Object {
+         $extensions -contains $_.Extension.ToLower()
+      }
+   } elseif (Test-Path $VideoPath -PathType Leaf) {
       $video_files = @(Get-Item -Force $VideoPath)
+   } else {
+      Write-Error "The specified path does not exist: $VideoPath"
+      return
    }
 
    $confirmation_responses = @{}
