@@ -1,11 +1,26 @@
 # lib\helpers.psm1
 
 function Grant-Elevation {
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole] "Administrator")) {
-        Write-Warning "This script needs to be run as Administrator."
-        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-        exit
+    if (Get-Ccommand "gsudo" -ErrorAction SilentlyContinue) {
+        & gsudo
+    } else {
+        Install-Gsudo
+    }
+}
+
+function Install-Gsudo {
+    Update-Winget
+
+    if (Get-Command "gsudo" -ErrorAction SilentlyContinue) {
+        return
+    } else {
+        try {
+            Write-Host "Installing gsudo..."
+            winget install -e --id=gerardog.gsudo
+            Write-Host "gsudo installed."
+        } catch {
+            Write-Warning "Failed to install gsudo: $_"
+        }
     }
 }
 
@@ -63,16 +78,14 @@ function Update-Winget {
 
         if (-not $wingetPath) {
             Write-Host "winget is not installed."
-            if (Read-PromptYesNo -Message "Do you want to install winget?" -Default "Y") {
-                winget install --id Microsoft.DesktopAppInstaller -e --source msstore
-                Write-Host "winget installed."
-                return $true
-            }
+            Write-Host "Please install it from https://github.com/microsoft/winget-cli/releases"
+            return $false
         } else {
             # Get the installed version of winget from file properties
             $installedVersion = (Get-Command winget).Version
             if (-not $installedVersion) {
                 Write-Warning "Failed to retrieve installed winget version."
+                return 
             } else {
                 # Check if an upgrade is available
                 $wingetUpgradeOutput = winget upgrade --id Microsoft.DesktopAppInstaller -e --source msstore 2>&1
