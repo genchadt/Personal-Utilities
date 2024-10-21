@@ -323,6 +323,16 @@ packages:
       - Standard
 
   # Productivity and Office
+  - id: MiKTeX.MiKTeX
+    name: MiKTeX
+    managers:
+      winget:
+        available: true
+      scoop:
+        available: false
+    categories:
+      - Standard
+
   - id: SumatraPDF.SumatraPDF
     name: SumatraPDF
     managers:
