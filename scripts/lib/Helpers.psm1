@@ -9,7 +9,7 @@ function Grant-Elevation {
     }
 }
 
-function Prompt-YesNo {
+function Read-PromptYesNo {
     param (
         [Parameter(Mandatory=$true)]
         [string]$Message,
