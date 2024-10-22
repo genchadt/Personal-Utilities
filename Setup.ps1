@@ -45,7 +45,7 @@ function Restore-Activation {
             if ($nonLicensedProducts) {
                 Write-Host "Some Microsoft products are not licensed."
                 if (Read-PromptYesNo -Message "Would you like to invoke MAS to restore activation?" -Default "N") {
-                    irm https://get.activated.win | iex
+                    Invoke-MAS
                 }
             } else {
                 Write-Host "All Microsoft products are licensed."
