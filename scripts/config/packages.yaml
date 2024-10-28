@@ -107,6 +107,11 @@ packages:
 
   - id: JetBrains.IntelliJIDEA.Community
     name: JetBrains IntelliJ IDEA
+    managers:
+      winget:
+        available: true
+    categories:
+      - Optional
 
   - id: Microsoft.VisualStudio.2022.Community
     install-args: "--interactive"
