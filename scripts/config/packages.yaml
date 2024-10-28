@@ -97,6 +97,14 @@ packages:
       - Limited
       - Standard
 
+  - id: JetBrains.Rider
+    name: JetBrains Rider
+    managers:
+      winget:
+        available: true
+    categories:
+      - Optional
+
   - id: Microsoft.VisualStudio.2022.Community
     install-args: "--interactive"
     name: Visual Studio 2022
