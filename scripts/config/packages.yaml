@@ -105,6 +105,9 @@ packages:
     categories:
       - Optional
 
+  - id: JetBrains.IntelliJIDEA.Community
+    name: JetBrains IntelliJ IDEA
+
   - id: Microsoft.VisualStudio.2022.Community
     install-args: "--interactive"
     name: Visual Studio 2022
