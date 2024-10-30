@@ -1,0 +1,151 @@
+{
+    "$help": "https://aka.ms/terminal-documentation",
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "actions": 
+    [
+        {
+            "command": "unbound",
+            "keys": "ctrl+shift+t"
+        },
+        {
+            "command": 
+            {
+                "action": "copy",
+                "singleLine": false
+            },
+            "id": "User.copy.644BA8F2",
+            "keys": "ctrl+c"
+        },
+        {
+            "command": "paste",
+            "id": "User.paste",
+            "keys": "ctrl+v"
+        },
+        {
+            "command": "find",
+            "id": "User.find",
+            "keys": "ctrl+shift+f"
+        },
+        {
+            "command": 
+            {
+                "action": "splitPane",
+                "split": "auto",
+                "splitMode": "duplicate"
+            },
+            "id": "User.splitPane.A6751878",
+            "keys": "alt+shift+d"
+        },
+        {
+            "command": 
+            {
+                "action": "newTab"
+            },
+            "id": "User.newTab.5DEADB41",
+            "keys": "ctrl+t"
+        }
+    ],
+    "centerOnLaunch": true,
+    "copyFormatting": "none",
+    "copyOnSelect": false,
+    "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+    "initialPosition": "0,0",
+    "initialRows": 38,
+    "newTabMenu": 
+    [
+        {
+            "type": "remainingProfiles"
+        }
+    ],
+    "profiles": 
+    {
+        "defaults": 
+        {
+            "colorScheme": "Gruvbox Dark",
+            "font": 
+            {
+                "face": "CaskaydiaCove Nerd Font Mono"
+            },
+            "padding": "0",
+            "scrollbarState": "hidden"
+        },
+        "list": 
+        [
+            {
+                "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "hidden": false,
+                "name": "Windows PowerShell"
+            },
+            {
+                "commandline": "%SystemRoot%\\System32\\cmd.exe",
+                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+                "hidden": false,
+                "name": "Command Prompt"
+            },
+            {
+                "commandline": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoExit -Command winfetch",
+                "font": 
+                {
+                    "face": "CaskaydiaCove Nerd Font Mono"
+                },
+                "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+                "hidden": false,
+                "name": "PowerShell",
+                "source": "Windows.Terminal.PowershellCore"
+            },
+            {
+                "guid": "{b453ae62-4e3d-5e58-b989-0a998ec441b8}",
+                "hidden": false,
+                "name": "Azure Cloud Shell",
+                "source": "Windows.Terminal.Azure"
+            },
+            {
+                "guid": "{4d6a9b77-c190-566d-98cb-df805cbfb8c6}",
+                "hidden": false,
+                "name": "Developer Command Prompt for VS 2022",
+                "source": "Windows.Terminal.VisualStudio"
+            },
+            {
+                "guid": "{5ac2810a-0c2a-54a8-ae9f-1dd260c46e59}",
+                "hidden": false,
+                "name": "Developer PowerShell for VS 2022",
+                "source": "Windows.Terminal.VisualStudio"
+            },
+            {
+                "guid": "{2ece5bfe-50ed-5f3a-ab87-5cd4baafed2b}",
+                "hidden": false,
+                "name": "Git Bash",
+                "source": "Git"
+            }
+        ]
+    },
+    "schemes": 
+    [
+        {
+            "name": "Gruvbox Dark",
+            "black": "#282828",
+            "red": "#cc241d",
+            "green": "#98971a",
+            "yellow": "#d79921",
+            "blue": "#458588",
+            "purple": "#b16286",
+            "cyan": "#689d6a",
+            "white": "#a89984",
+            "brightBlack": "#928374",
+            "brightRed": "#fb4934",
+            "brightGreen": "#b8bb26",
+            "brightYellow": "#fabd2f",
+            "brightBlue": "#83a598",
+            "brightPurple": "#d3869b",
+            "brightCyan": "#8ec07c",
+            "brightWhite": "#ebdbb2",
+            "background": "#282828",
+            "foreground": "#ebdbb2",
+            "selectionBackground": "#665c54",
+            "cursorColor": "#ebdbb2"
+        }
+    ],
+    "startOnUserLogin": true,
+    "themes": []
+}
