@@ -1,4 +1,4 @@
-function Update-TerminalSettings {
+function Sync-TerminalSettings {
     param (
         [Alias("Path")]
         [string]$SettingsSourcePath = "$PSScriptRoot\config\terminal\settings.json",
