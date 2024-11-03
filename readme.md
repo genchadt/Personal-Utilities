@@ -44,9 +44,9 @@ Reforger doesn't have to be focused, so you can go about other business while wa
 
 Sets the specified file attributes.
 
-### Sync-TerminalSettings
+### Sync-GithubProfiles
 
-Syncs loaded Windows Terminal settings with the repository maintained version.
+Syncs currently loaded profiles with the repository maintained versions available in the profiles/ directory.
 
 ### Update-GitHubProfiles
 
