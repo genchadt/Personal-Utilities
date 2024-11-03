@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Invoke-ReforgerInput.ps1 - Sends the "Enter" key to the Arma Reforger window to try and join games.
+    Send-ReforgerInput.ps1 - Sends the "Enter" key to the Arma Reforger window to try and join games.
 
 .DESCRIPTION
     This script sends the "Enter" key to the game window to trigger the reforger input. Please BI build a queuing system so I can stop using this.
