@@ -95,7 +95,7 @@ function Sync-Repository {
         switch ($Changes) {
             "Uncommitted changes" {
                 Write-Verbose "Detected uncommitted changes in '$Directory'"
-                if (Read-PromptYesNo -Message "Do you want to stash changes?" -Default "N") {
+                if (Read-Prompt -Message "Do you want to stash changes?" -Default "N") {
                     git stash | Out-Null
                     Write-Host "Changes stashed."
                 } else {
@@ -105,7 +105,7 @@ function Sync-Repository {
             }
             "Local changes ahead of remote" {
                 Write-Verbose "Local changes ahead of remote in '$Directory'"
-                if (Read-PromptYesNo -Message "Do you want to push changes to remote?" -Default "N") {
+                if (Read-Prompt -Message "Do you want to push changes to remote?" -Default "N") {
                     git push origin $Branch | Out-Null
                     Write-Host "Changes pushed to remote."
                 } else {
@@ -114,7 +114,7 @@ function Sync-Repository {
             }
             "Remote changes ahead of local" {
                 Write-Verbose "Remote changes ahead of local in '$Directory'"
-                if (Read-PromptYesNo -Message "Do you want to pull changes from remote?" -Default "N") {
+                if (Read-Prompt -Message "Do you want to pull changes from remote?" -Default "N") {
                     git pull origin $Branch | Out-Null
                     Write-Host "Changes pulled from remote."
                 } else {
@@ -123,7 +123,7 @@ function Sync-Repository {
             }
             "Diverged" {
                 Write-Verbose "Local and remote branches have diverged in '$Directory'"
-                if (Read-PromptYesNo -Message "Do you want to merge changes?" -Default "N") {
+                if (Read-Prompt -Message "Do you want to merge changes?" -Default "N") {
                     git merge origin/$Branch | Out-Null
                     Write-Host "Repositories merged."
                 } else {
@@ -209,7 +209,7 @@ function Update-GithubProfiles {
             "T" {
                 foreach ($missingRepo in $missingRepos) {
                     Write-Host "Repository: $($missingRepo.Name)"
-                    $cloneAction = Read-PromptYesNo -Message "Do you want to clone this repository?" -Default "Y"
+                    $cloneAction = Read-Prompt -Message "Do you want to clone this repository?" -Default "Y"
                     if ($cloneAction) {
                         Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory -Verbose:$VerbosePreference
                     } else {

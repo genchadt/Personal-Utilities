@@ -26,38 +26,50 @@
    Requires FFmpeg in the system's PATH. Modify compression settings in the `Compress-Video` function.
 #>
 
-###############################################
-# Parameters
-###############################################
-
 param (
-   [string]$VideoPath,
-   [switch]$IgnoreCompressed,
-   [switch]$DeleteSource
-)
+   [Parameter(Position = 0, Mandatory = $true)]
+   [string]$VideoPath = (Get-Location).Path,
 
-###############################################
-# Functions
-###############################################
+   [Parameter(Position = 1, Mandatory = $false)]
+   [switch]$IgnoreCompressed = $false,
+
+   [Parameter(Position = 2, Mandatory = $false)]
+   [switch]$DeleteSource = $false,
+
+   [array]$extensions = @(
+      ".avi",
+      ".flv",
+      ".mp4",
+      ".mov",
+      ".mkv",
+      ".wmv"),
+
+   [array]$ffmpeg_args = @(
+      '-i', $null,
+      '-c:v', 'libx265',
+      '-crf', '28',
+      '-preset', 'slow',
+      '-c:a', 'copy',
+      $null
+   )
+)
 
 function Compress-Video {
    param(
+      [CmdletBinding()]
       [string]$VideoPath,
       [switch]$IgnoreCompressed,
-      [switch]$DeleteSource
+      [switch]$DeleteSource,
+      [array]$ffmpeg_args
    )
 
    $extensions = ".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv"
    $video_files = @()
-
-   # If no path is provided, work in the current directory
-   if (-not $VideoPath) {
-      $VideoPath = Get-Location
-   }
-
+   
    if (Test-Path $VideoPath -PathType Container) {
-      # Get files matching the specified extensions
+      Write-Verbose "Searching for video files matching extension rules in: $VideoPath"
       $video_files = Get-ChildItem -Force -Path $VideoPath -File | Where-Object {
+         Write-Verbose "Extension: $($_.Extension)"
          $extensions -contains $_.Extension.ToLower()
       }
    } elseif (Test-Path $VideoPath -PathType Leaf) {
@@ -83,29 +95,25 @@ function Compress-Video {
          }
       }
 
-      # Add to list of files to be compressed
+      # Files to be compressed based on user response
       $confirmation_responses[$file.Name] = 'Y'
    }
 
    foreach ($file in $video_files) {
       if ($confirmation_responses[$file.Name] -ne 'Y') {
+         # User asked not to compress this file
          continue
       }
 
       $output_path = Join-Path (Split-Path $file.FullName) "$($([System.IO.Path]::GetFileNameWithoutExtension($file.FullName)))_compressed.mp4"
 
-      # FFmpeg arguments
-      $ffmpeg_args = @(
-         '-i', $file.FullName,
-         '-c:v', 'libx265',
-         '-crf', '28',
-         '-preset', 'slow',
-         '-c:a', 'copy',
-         $output_path
-      )
+      # Populate null placeholders in ffmpeg file arguments
+      $ffmpeg_args[1] = $file.FullName
+      $ffmpeg_args[-1] = $output_path
 
       try {
          Write-Host "Compressing: $($file.FullName)" -ForegroundColor Cyan
+         Write-Verbose "FFmpeg command: ffmpeg $ffmpeg_args"
          & ffmpeg @ffmpeg_args
          if ($LASTEXITCODE -eq 0) {
             Write-Host "Compression successful: $output_path" -ForegroundColor Green
@@ -122,15 +130,10 @@ function Compress-Video {
       }
    }
 }
-
-###############################################
-# Execution
-###############################################
-
-$params = @{
-   VideoPath        = $VideoPath
-   IgnoreCompressed = $IgnoreCompressed
-   DeleteSource     = $DeleteSource
-}
-
-Compress-Video @params
+Compress-Video `
+   -VideoPath $VideoPath `
+   -IgnoreCompressed $IgnoreCompressed `
+   -DeleteSource $DeleteSource `
+   -ffmpeg_args $ffmpeg_args `
+   -extensions $extensions `
+   -Verbose $Verbose.IsPresent

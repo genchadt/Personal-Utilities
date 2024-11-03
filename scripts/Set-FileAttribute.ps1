@@ -12,9 +12,6 @@ function Set-FileAttribute {
         [Alias("h")]
         [Switch]$Hidden,
 
-        [Alias("v")]
-        [Switch]$Visible,
-
         [Alias("r")]
         [Switch]$Recurse,
 
@@ -24,14 +21,6 @@ function Set-FileAttribute {
         [Alias("s")]
         [Switch]$System
     )
-
-    begin {
-        # Validate parameter compatibility
-        if ($Hidden -and $Visible) {
-            Write-Error "Cannot specify both -Hidden and -Visible flags."
-            return
-        }
-    }
 
     process {
         # Determine paths to process
@@ -65,11 +54,11 @@ function Set-FileAttribute {
                             }
                         }
 
-                        # Modify Hidden attribute based on -Hidden and -Visible switches
+                        # Set or remove Hidden attribute based on -Hidden switch
                         if ($Hidden) {
                             $item.Attributes = $item.Attributes -bor [System.IO.FileAttributes]::Hidden
                             Write-Verbose "Set 'Hidden' attribute on '$($item.FullName)'."
-                        } elseif ($Visible) {
+                        } else {
                             $item.Attributes = $item.Attributes -band (-bnot [System.IO.FileAttributes]::Hidden)
                             Write-Verbose "Removed 'Hidden' attribute from '$($item.FullName)'."
                         }
@@ -82,12 +71,9 @@ function Set-FileAttribute {
     }
 }
 
-$params = @{
-    Path = $Path
-    Hidden = $Hidden
-    Visible = $Visible
-    Recurse = $Recurse
-    Force = $Force
-    System = $System
-}
-Set-FileAttribute @params
+Set-FileAttribute `
+    -Path $Path `
+    -Recurse $Recurse `
+    -Force $Force
+    -Hidden $Hidden `
+    -System $System `

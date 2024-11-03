@@ -21,7 +21,7 @@ Import-Module "$PSScriptRoot/scripts/lib/Helpers.psm1" -Force
 #############################################################################
 
 function Install-Office {
-    $response = Read-PromptYesNo -Message "Would you like to install Microsoft Office?" -Default "N"
+    $response = Read-Prompt -Message "Would you like to install Microsoft Office?" -Default "N"
     if ($response) {
         try {
             Write-Host "Opening download link for 'O365ProPlusRetail'..."
@@ -35,7 +35,7 @@ function Install-Office {
 }
 
 function Restore-Activation {
-    $response = Read-PromptYesNo -Message "Would you like to check and restore Microsoft product activation?" -Default "N"
+    $response = Read-Prompt -Message "Would you like to check and restore Microsoft product activation?" -Default "N"
     Write-Host "Checking activation statuses..."
     if ($response) {
         try {
@@ -44,7 +44,7 @@ function Restore-Activation {
     
             if ($nonLicensedProducts) {
                 Write-Host "Some Microsoft products are not licensed."
-                if (Read-PromptYesNo -Message "Would you like to invoke MAS to restore activation?" -Default "N") {
+                if (Read-Prompt -Message "Would you like to invoke MAS to restore activation?" -Default "N") {
                     Invoke-MAS
                 }
             } else {
@@ -126,7 +126,7 @@ function Install-Extras {
 
     try {
         if ($package -like "*Spotify.Spotify*") {
-            if (Read-PromptYesNo -Message "Spotify.Spotify is installed. Would you like to install Spicetify?" -Default "Y") {
+            if (Read-Prompt -Message "Spotify.Spotify is installed. Would you like to install Spicetify?" -Default "Y") {
                 ./scripts/Update-Spicetify.ps1
             }
         } else {
@@ -140,7 +140,7 @@ function Install-Extras {
 
 function Request-RestartExplorer {
     Write-Host "Package installation complete."
-    if (Read-PromptYesNo -Message "Do you want to restart Explorer.exe to apply changes now?" -Default "Y") {
+    if (Read-Prompt -Message "Do you want to restart Explorer.exe to apply changes now?" -Default "Y") {
         try {
             Write-Host "Restarting Explorer.exe..."
             Stop-Process -Name explorer -Force
@@ -152,7 +152,7 @@ function Request-RestartExplorer {
     }
 
     Write-Host "It is recommended to restart your system to apply all changes."
-    if (Read-PromptYesNo -Message "Restart now?" -Default "N") {
+    if (Read-Prompt -Message "Restart now?" -Default "N") {
         Restart-Computer
     }
 }
@@ -174,7 +174,7 @@ function Setup {
         $updatePerformed = $true
     }
 
-    if (Update-Winget) {
+    if (Assert-Winget) {
         $updatePerformed = $true
     }
 

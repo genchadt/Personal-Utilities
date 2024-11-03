@@ -18,7 +18,13 @@ function Sync-GithubProfiles {
 
     # Validate ProfilesPath exists as a directory
     if (-not (Test-Path -Path $ProfilesPath -PathType Container)) {
-        throw "Profiles path '$ProfilesPath' does not exist or is not a directory."
+        Write-Warning "Profiles path '$ProfilesPath' does not exist or is not a directory."
+        Write-Warning "Would you like to create it?"
+        $confirmation = Read-Prompt -Message "Would you like to create it?" -Default "N"
+        if ($confirmation) {
+            Write-Verbose "Creating profiles path '$ProfilesPath'"
+            New-Item -Path $ProfilesPath -ItemType Directory | Out-Null
+        }
     }
 
     # Load configuration with verbose output
@@ -31,7 +37,7 @@ function Sync-GithubProfiles {
 
     $overwriteFiles = @()  # Collect files that may be overwritten
 
-    # Track colors for alternating profile displays
+    # Track colors for alternating profiles
     $profileColors = @("Cyan", "Magenta")
     $colorIndex = 0
 
@@ -148,10 +154,4 @@ function Copy-Profile {
         throw
     }
 }
-
-$params = @{
-    ConfigurationPath = $ConfigurationPath
-    ProfilesPath      = $ProfilesPath
-    Verbose           = $Verbose
-}
-Sync-GithubProfiles @params
+Sync-GithubProfiles -ConfigurationPath $ConfigurationPath -ProfilesPath $ProfilesPath -Verbose:$Verbose.IsPresent
