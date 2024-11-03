@@ -40,9 +40,9 @@ Continually presses the "Enter" key inside Arma Reforger's window since no queue
 
 Reforger doesn't have to be focused, so you can go about other business while waiting on a game.
 
-### Set-Visibility
+### Set-FileAttribute
 
-Quickly sets the hidden attribute of files and folders.
+Sets the specified file attributes.
 
 ### Sync-TerminalSettings
 
