@@ -1,11 +1,24 @@
-# Import the helper module
+###############################################
+# Parameters
+###############################################
+
+param (
+    [string]$ConfigurationPath = "$PSScriptRoot/config/github/profiles_github.json",
+    [string]$ProfilesPath = "$PSScriptRoot/profiles",
+    [switch]$Verbose
+)
+
+###############################################
+# Imports
+###############################################
+
 Import-Module "$PSScriptRoot/lib/Helpers.psm1"
 
 ###############################################
 # Functions
 ###############################################
-
 function Get-RepoStatus {
+    [CmdletBinding()]
     param (
         [string]$Directory,
         [string]$Branch,
@@ -13,6 +26,7 @@ function Get-RepoStatus {
         [string]$RepoUrl
     )
 
+    Write-Verbose "Checking repository status for '$RepoName' at '$Directory'..."
     $changes = ""
     if (-not (Test-Path -Path $Directory)) {
         $changes = "Error: Directory does not exist"
@@ -27,6 +41,7 @@ function Get-RepoStatus {
                 $changes = "Uncommitted changes"
             } else {
                 # Fetch the latest changes from the remote repository
+                Write-Verbose "Fetching latest changes from origin/$Branch"
                 git fetch origin $Branch *>$null
 
                 $localCommit = git rev-parse $Branch 2>$null
@@ -67,17 +82,19 @@ function Get-RepoStatus {
 }
 
 function Sync-Repository {
+    [CmdletBinding()]
     param (
         [string]$Directory,
         [string]$Branch,
         [string]$Changes
     )
 
+    Write-Verbose "Synchronizing repository at '$Directory' with branch '$Branch'"
     Push-Location $Directory
     try {
         switch ($Changes) {
             "Uncommitted changes" {
-                Write-Host "Uncommitted changes detected in $Directory."
+                Write-Verbose "Detected uncommitted changes in '$Directory'"
                 if (Read-PromptYesNo -Message "Do you want to stash changes?" -Default "N") {
                     git stash | Out-Null
                     Write-Host "Changes stashed."
@@ -87,7 +104,7 @@ function Sync-Repository {
                 }
             }
             "Local changes ahead of remote" {
-                Write-Host "Local repository is ahead of remote in $Directory."
+                Write-Verbose "Local changes ahead of remote in '$Directory'"
                 if (Read-PromptYesNo -Message "Do you want to push changes to remote?" -Default "N") {
                     git push origin $Branch | Out-Null
                     Write-Host "Changes pushed to remote."
@@ -96,7 +113,7 @@ function Sync-Repository {
                 }
             }
             "Remote changes ahead of local" {
-                Write-Host "Remote repository has updates in $Directory."
+                Write-Verbose "Remote changes ahead of local in '$Directory'"
                 if (Read-PromptYesNo -Message "Do you want to pull changes from remote?" -Default "N") {
                     git pull origin $Branch | Out-Null
                     Write-Host "Changes pulled from remote."
@@ -105,7 +122,7 @@ function Sync-Repository {
                 }
             }
             "Diverged" {
-                Write-Host "Local and remote repositories have diverged in $Directory."
+                Write-Verbose "Local and remote branches have diverged in '$Directory'"
                 if (Read-PromptYesNo -Message "Do you want to merge changes?" -Default "N") {
                     git merge origin/$Branch | Out-Null
                     Write-Host "Repositories merged."
@@ -124,14 +141,19 @@ function Sync-Repository {
 }
 
 function Connect-Repository {
+    [CmdletBinding()]
     param (
         [string]$RepoUrl,
         [string]$Directory
     )
 
-    Write-Host "Cloning repository from $RepoUrl to $Directory..."
-    git clone $RepoUrl $Directory | Out-Null
-    Write-Host "Repository cloned."
+    Write-Verbose "Cloning repository from '$RepoUrl' to '$Directory'"
+    try {
+        git clone $RepoUrl $Directory | Out-Null
+        Write-Host "Repository cloned successfully."
+    } catch {
+        Write-Error "Failed to clone repository from '$RepoUrl' to '$Directory': $_"
+    }
 }
 
 function Update-GithubProfiles {
@@ -178,7 +200,7 @@ function Update-GithubProfiles {
         switch ($action.ToUpper()) {
             "A" {
                 foreach ($missingRepo in $missingRepos) {
-                    Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory
+                    Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory -Verbose:$VerbosePreference
                 }
             }
             "S" {
@@ -189,7 +211,7 @@ function Update-GithubProfiles {
                     Write-Host "Repository: $($missingRepo.Name)"
                     $cloneAction = Read-PromptYesNo -Message "Do you want to clone this repository?" -Default "Y"
                     if ($cloneAction) {
-                        Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory
+                        Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory -Verbose:$VerbosePreference
                     } else {
                         Write-Host "Skipping $($missingRepo.Name)"
                     }
@@ -206,7 +228,7 @@ function Update-GithubProfiles {
         $repoDir = Join-Path -Path $ProfilesPath -ChildPath $repo.RepoName
 
         # Check repository status
-        $repoStatus = Get-RepoStatus -Directory $repoDir -Branch $repo.Branch -RepoName $repo.Name -RepoUrl $repo.Url
+        $repoStatus = Get-RepoStatus -Directory $repoDir -Branch $repo.Branch -RepoName $repo.Name -RepoUrl $repo.Url -Verbose:$VerbosePreference
         $repoStatuses += $repoStatus
     }
 
@@ -237,7 +259,7 @@ function Update-GithubProfiles {
 
             switch ($action.ToUpper()) {
                 "Y" {
-                    Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
+                    Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes -Verbose:$VerbosePreference
                     $changesApplied[$repoStatus.Name] = $true
                 }
                 "N" {
@@ -246,7 +268,7 @@ function Update-GithubProfiles {
                 "A" {
                     Write-Host "Applying changes to all repositories."
                     foreach ($status in $changesNeeded) {
-                        Sync-Repository -Directory $status.Directory -Branch $status.Branch -Changes $status.Changes
+                        Sync-Repository -Directory $status.Directory -Branch $status.Branch -Changes $status.Changes -Verbose:$VerbosePreference
                         $changesApplied[$status.Name] = $true
                     }
                     break
@@ -273,5 +295,9 @@ function Update-GithubProfiles {
     }
 }
 
-# Run the updater function if the script is not being sourced
-if ($MyInvocation.ScriptName -ne ".") { Update-GithubProfiles }
+$params = @{
+    ConfigurationPath = $ConfigurationPath
+    ProfilesPath      = $ProfilesPath
+    Verbose           = $Verbose
+}
+Update-GithubProfiles @params
