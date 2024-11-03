@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param(
     [switch]$check,
     [alias("del")]

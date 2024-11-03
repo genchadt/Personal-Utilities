@@ -4,11 +4,6 @@
 
 .DESCRIPTION
     Reads a list of packages from a YAML configuration file, prompts the user to select the installation type (Limited, Standard, Full, Optional Only), displays a custom GUI for package selection with all relevant items pre-selected, and installs them using winget, scoop, and chocolatey.
-
-.NOTES
-    Script Version: 2.2.0
-    Author: Chad
-    Creation Date: 2024-01-29 04:30:00 GMT
 #>
 
 [CmdletBinding()]
@@ -24,38 +19,6 @@ param (
 Import-Module "$PSScriptRoot\lib\gui.psm1"
 Import-Module "$PSScriptRoot\lib\helpers.psm1"
 Import-Module "$PSScriptRoot\lib\packages.psm1"
-
-# Assert Functions
-
-<#
-.SYNOPSIS
-    Checks if gsudo is installed and installs it if not.
-#>
-function Assert-Gsudo {
-    [CmdletBinding()]
-    param ()
-
-    Write-Debug "Starting Assert-Gsudo..."
-    if (Get-Command "gsudo" -ErrorAction SilentlyContinue) {
-        Write-Verbose "gsudo is already installed."
-        return $true
-    } else {
-        try {
-            Write-Warning "gsudo is not installed."
-            if (Read-Prompt -Message "Do you want to install gsudo?" -Prompt "YN" -Default "Y") {
-                winget install -e --id=gerardog.gsudo
-                Write-Host "gsudo installed."
-                return $true
-            } else {
-                Write-Warning "gsudo installation was declined by the user."
-                return $false
-            }
-        } catch {
-            Write-Warning "Failed to install gsudo: $_"
-            return $false
-        }
-    }
-}
 
 <#
 .SYNOPSIS
@@ -82,7 +45,7 @@ function Assert-Winget {
 .SYNOPSIS
     Loads YAML package configuration.
 #>
-function Load-YamlPackageConfig {
+function Import-YamlPackageConfig {
     [CmdletBinding()]
     param (
         [string]$ConfigurationFilePath
@@ -185,7 +148,7 @@ function Install-Packages {
 
     # Attempt to load package configuration from YAML
     try {
-        $packageConfig = Load-YamlPackageConfig -ConfigurationFilePath $ConfigurationFilePath
+        $packageConfig = Import-YamlPackageConfig -ConfigurationFilePath $ConfigurationFilePath
         if (-not $packageConfig) {
             Write-Error "Install-Packages: Package configuration is empty or invalid. Exiting."
             return
@@ -205,9 +168,10 @@ function Install-Packages {
 
     Write-Verbose "Calling Start-PackageInstallation..."
     Start-PackageInstallation -packages $selectedPackages -Force:$Force
+    Write-Host "Package installation complete." -ForegroundColor Green
 }
 
 # Execute the Install-Packages function with the script's parameters
 Install-Packages `
     -ConfigurationFilePath $ConfigurationFilePath `
-    -Force:$Force
+    -Force $Force

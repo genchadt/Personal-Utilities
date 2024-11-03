@@ -21,7 +21,7 @@
     .EXAMPLE
         .\Install-Fonts.ps1 -Path "C:\Windows\Fonts" -Filter "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc"
 #>
-
+[CmdletBinding()]
 param(
     [Parameter(Position = 0)]
     [string]$Path = (Get-Location).Path,
@@ -91,4 +91,7 @@ function Install-Fonts {
 
     Write-Host "All font installations completed." -ForegroundColor Green
 }
-Install-Fonts -Path $Path -Filter $Filter -Force:$Force -Verbose:$Verbose.IsPresent
+Install-Fonts `
+    -Path $Path `
+    -Filter $Filter `
+    -Force:$Force

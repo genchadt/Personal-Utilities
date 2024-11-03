@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param (
     [string]$MASInstallerPath = "https://get.activated.win"
 )
@@ -14,6 +15,4 @@ function Invoke-MAS {
         Write-Warning "Invoke-MAS: Failed to invoke MAS: $_"
     }
 }
-Invoke-MAS `
-    -MASInstallerPath $MASInstallerPath `
-    -Verbose:$Verbose.IsPresent
+Invoke-MAS -MASInstallerPath $MASInstallerPath

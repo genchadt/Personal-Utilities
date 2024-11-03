@@ -131,24 +131,19 @@ function Show-PackageSelectionWindow {
     }
 
     # Initial load with default selection (Limited)
-    Write-Verbose "Initial load with default selection (Limited)"
     Update-PackageList -SelectedPackageList "Limited" -AllPackages $packages
 
     # Radio button checked events
     $limitedRadio.Add_Checked({
-        Write-Verbose "Limited selected"
         Update-PackageList -SelectedPackageList "Limited" -AllPackages $packages
     })
     $standardRadio.Add_Checked({
-        Write-Verbose "Standard selected"
         Update-PackageList -SelectedPackageList "Standard" -AllPackages $packages
     })
     $fullRadio.Add_Checked({
-        Write-Verbose "Full selected"
         Update-PackageList -SelectedPackageList "Full" -AllPackages $packages
     })
     $optionalRadio.Add_Checked({
-        Write-Verbose "Optional selected"
         Update-PackageList -SelectedPackageList "Optional" -AllPackages $packages
     })
 
@@ -193,13 +188,11 @@ function Show-PackageSelectionWindow {
         $selectedPackages = @()
         foreach ($item in $packageListPanel.Children) {
             if ($item.IsChecked) {
-                Write-Verbose "Selected package: $($item.Tag.name)"
                 $selectedPackages += $item.Tag
             }
         }
         $window.Close()
         if (-not $selectedPackages) {
-            Write-Host "No packages selected. Exiting."
             return
         }
         $script:SelectedPackages = $selectedPackages
@@ -207,11 +200,12 @@ function Show-PackageSelectionWindow {
 
     $cancelButton.Add_Click({
         $window.Close()
-        Write-Host "Installation canceled by user." -ForegroundColor Yellow
+    })
+
+    $window.Add_Closed({
     })
 
     try {
-        Write-Verbose "Attempting to show GUI window..."
         $window.ShowDialog() | Out-Null
     }
     catch {

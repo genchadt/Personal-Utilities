@@ -25,7 +25,7 @@
 .NOTES
    Requires FFmpeg in the system's PATH. Modify compression settings in the `Compress-Video` function.
 #>
-
+[CmdletBinding()]
 param (
    [Parameter(Position = 0, Mandatory = $true)]
    [string]$VideoPath = (Get-Location).Path,
@@ -135,5 +135,4 @@ Compress-Video `
    -IgnoreCompressed $IgnoreCompressed `
    -DeleteSource $DeleteSource `
    -ffmpeg_args $ffmpeg_args `
-   -extensions $extensions `
-   -Verbose $Verbose.IsPresent
+   -extensions $extensions

@@ -1,5 +1,35 @@
 <#
 .SYNOPSIS
+    Checks if gsudo is installed and installs it if not.
+#>
+function Assert-Gsudo {
+    [CmdletBinding()]
+    param ()
+
+    Write-Debug "Starting Assert-Gsudo..."
+    if (Get-Command "gsudo" -ErrorAction SilentlyContinue) {
+        Write-Verbose "gsudo is already installed."
+        return $true
+    } else {
+        try {
+            Write-Warning "gsudo is not installed."
+            if (Read-Prompt -Message "Do you want to install gsudo?" -Prompt "YN" -Default "Y") {
+                winget install -e --id=gerardog.gsudo
+                Write-Host "gsudo installed."
+                return $true
+            } else {
+                Write-Warning "gsudo installation was declined by the user."
+                return $false
+            }
+        } catch {
+            Write-Warning "Failed to install gsudo: $_"
+            return $false
+        }
+    }
+}
+
+<#
+.SYNOPSIS
     Grant-Elevation - Checks if gsudo is installed and elevates the script if not.
 #>
 function Grant-Elevation {
@@ -17,25 +47,6 @@ function Grant-Elevation {
     } else {
         Write-Verbose "gsudo is not installed."
         Assert-Gsudo
-    }
-}
-
-<#
-.SYNOPSIS
-    Checks if gsudo is installed and installs it if not.
-    #>
-function Assert-Gsudo {
-    if (Get-Command "gsudo" -ErrorAction SilentlyContinue) {
-        return
-    } else {
-        try {
-            Write-Warning "gsudo is not installed."
-            Read-Prompt -Message "Do you want to install it?" -Prompt "YN" -Default "Y"
-            winget install -e --id=gerardog.gsudo
-            Write-Host "gsudo installed."
-        } catch {
-            Write-Warning "Failed to install gsudo: $_"
-        }
     }
 }
 
