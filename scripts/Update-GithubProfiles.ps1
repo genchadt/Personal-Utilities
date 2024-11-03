@@ -1,96 +1,240 @@
-<#
-.SYNOPSIS
-    Updates various local profiles by pulling changes from remote GitHub repositories.
-
-.DESCRIPTION
-    This script automates the process of updating local profile configurations by fetching and pulling changes from specified GitHub repositories.
-    It handles both updating existing local repositories and cloning new repositories if they are not already present locally.
-
-.PARAMETER ConfigurationPath
-    The path to the JSON configuration file containing repository information. Defaults to "$PSScriptRoot/config/profiles_github.json" if not specified.
-
-.EXAMPLE
-    .\Update-GithubProfiles.ps1
-    This command runs the script to update or clone the GitHub repositories specified in the script.
-
-.NOTES
-    - This script requires Git to be installed and available in the system's PATH.
-    - Repositories are predefined in the script with their respective names, URLs, branches, and local directory paths.
-    - Error handling is provided for common issues like Git not being installed, repository not being found, or errors during Git operations.
-
-.LINK
-    Git Installation: https://git-scm.com/downloads
-
-.INPUTS
-    None
-
-.OUTPUTS
-    Console output indicating the status of each repository update or clone operation.
-#>
-
-###############################################
-# Imports
-###############################################
-Import-Module "$PSScriptRoot/lib/ErrorHandling.psm1"
-Import-Module "$PSScriptRoot/lib/GithubHelpers.psm1"
-Import-Module "$PSScriptRoot/lib/SysOperation.psm1"
-Import-Module "$PSScriptRoot/lib/TextHandling.psm1"
+# Import the helper module
+Import-Module "$PSScriptRoot/lib/Helpers.psm1"
 
 ###############################################
 # Functions
 ###############################################
+
+function Get-RepoStatus {
+    param (
+        [string]$Directory,
+        [string]$Branch,
+        [string]$RepoName,
+        [string]$RepoUrl
+    )
+
+    $changes = ""
+    if (-not (Test-Path -Path $Directory)) {
+        $changes = "Error: Directory does not exist"
+    } elseif (-not (Test-Path -Path (Join-Path $Directory ".git"))) {
+        $changes = "Error: Not a git repository"
+    } else {
+        Push-Location $Directory
+        try {
+            # Check for uncommitted changes
+            $statusOutput = git status --porcelain 2>$null
+            if ($statusOutput) {
+                $changes = "Uncommitted changes"
+            } else {
+                # Fetch the latest changes from the remote repository
+                git fetch origin $Branch *>$null
+
+                $localCommit = git rev-parse $Branch 2>$null
+                $remoteCommit = git rev-parse origin/$Branch 2>$null
+
+                if ($localCommit -eq $remoteCommit) {
+                    $changes = "No changes"
+                } else {
+                    $aheadBehind = git rev-list --left-right --count $Branch...origin/$Branch 2>$null
+                    $aheadBehindCounts = $aheadBehind -split "`t"
+                    $ahead = [int]$aheadBehindCounts[0]
+                    $behind = [int]$aheadBehindCounts[1]
+
+                    if ($ahead -gt 0 -and $behind -gt 0) {
+                        $changes = "Diverged"
+                    } elseif ($ahead -gt 0) {
+                        $changes = "Local changes ahead of remote"
+                    } elseif ($behind -gt 0) {
+                        $changes = "Remote changes ahead of local"
+                    } else {
+                        $changes = "No changes"
+                    }
+                }
+            }
+        } catch {
+            $changes = "Error: $_"
+        }
+        Pop-Location
+    }
+
+    return [PSCustomObject]@{
+        Name      = $RepoName
+        Directory = $Directory
+        Branch    = $Branch
+        Changes   = $changes
+        RepoUrl   = $RepoUrl
+    }
+}
+
+function Sync-Repository {
+    param (
+        [string]$Directory,
+        [string]$Branch,
+        [string]$Changes
+    )
+
+    Push-Location $Directory
+    try {
+        switch ($Changes) {
+            "Uncommitted changes" {
+                Write-Host "Uncommitted changes detected in $Directory."
+                if (Read-PromptYesNo -Message "Do you want to stash changes?" -Default "N") {
+                    git stash | Out-Null
+                    Write-Host "Changes stashed."
+                } else {
+                    Write-Host "Skipping repository due to uncommitted changes."
+                    return
+                }
+            }
+            "Local changes ahead of remote" {
+                Write-Host "Local repository is ahead of remote in $Directory."
+                if (Read-PromptYesNo -Message "Do you want to push changes to remote?" -Default "N") {
+                    git push origin $Branch | Out-Null
+                    Write-Host "Changes pushed to remote."
+                } else {
+                    Write-Host "Skipping pushing changes."
+                }
+            }
+            "Remote changes ahead of local" {
+                Write-Host "Remote repository has updates in $Directory."
+                if (Read-PromptYesNo -Message "Do you want to pull changes from remote?" -Default "N") {
+                    git pull origin $Branch | Out-Null
+                    Write-Host "Changes pulled from remote."
+                } else {
+                    Write-Host "Skipping pulling changes."
+                }
+            }
+            "Diverged" {
+                Write-Host "Local and remote repositories have diverged in $Directory."
+                if (Read-PromptYesNo -Message "Do you want to merge changes?" -Default "N") {
+                    git merge origin/$Branch | Out-Null
+                    Write-Host "Repositories merged."
+                } else {
+                    Write-Host "Skipping merge."
+                }
+            }
+            default {
+                Write-Host "No action needed for $Directory."
+            }
+        }
+    } catch {
+        Write-Warning "Failed to synchronize repository at ${Directory}: $_"
+    }
+    Pop-Location
+}
+
+function Connect-Repository {
+    param (
+        [string]$RepoUrl,
+        [string]$Directory
+    )
+
+    Write-Host "Cloning repository from $RepoUrl to $Directory..."
+    git clone $RepoUrl $Directory | Out-Null
+    Write-Host "Repository cloned."
+}
 
 function Update-GithubProfiles {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)]
         [ValidateScript({ Test-Path $_ })]
-        [string]$ConfigurationPath = "$PSScriptRoot/config/profiles_github.json"        
+        [string]$ConfigurationPath = "$PSScriptRoot/config/github/profiles_github.json",
+        [string]$ProfilesPath = "$PSScriptRoot/profiles"
     )
 
-    Write-Console "Test"
+    Write-Host "Updating GitHub profiles..."
     try {
-        $repos = Get-Configuration -FilePath $ConfigurationPath
-    }
-    catch {
-        Write-Error "Failed to load configuration from ${$ConfigurationPath}: $_"
+        $repos = Get-Content -Path $ConfigurationPath | ConvertFrom-Json
+    } catch {
+        Write-Error "Failed to load configuration from ${ConfigurationPath}: $_"
         return
     }
-    $totalRepos = $repos.Count
-    $repoIndex = 0
-    $changesApplied = @{}
 
+    $missingRepos = @()
+    $changesApplied = @{ }
     $repoStatuses = @()
+    $declineAll = $false  # Flag to skip all remaining items if "Decline All" is chosen
 
+    # Identify missing repositories
     foreach ($repo in $repos) {
-        $repoIndex++
-        $repoStatus = Get-RepositoryStatus -Directory ([Environment]::ExpandEnvironmentVariables($repo.Dir)) -Branch $repo.Branch -RepoName $repo.Name -Index $repoIndex -Total $totalRepos
+        $repoDir = Join-Path -Path $ProfilesPath -ChildPath $repo.RepoName
+        if (-not (Test-Path -Path $repoDir)) {
+            $missingRepos += [PSCustomObject]@{
+                Name      = $repo.Name
+                Directory = $repoDir
+                RepoUrl   = $repo.Url
+            }
+        }
+    }
+
+    # Display missing repositories and prompt for action
+    if ($missingRepos.Count -gt 0) {
+        Write-Host "The following repositories are missing:" -ForegroundColor Yellow
+        $missingRepos | ForEach-Object { Write-Host "- $($_.Name) (Directory: $($_.Directory))" -ForegroundColor Red }
+
+        $action = Read-Host "Would you like to clone (A)ll, (S)kip all, or (S)tep through each one?"
+
+        switch ($action.ToUpper()) {
+            "A" {
+                foreach ($missingRepo in $missingRepos) {
+                    Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory
+                }
+            }
+            "S" {
+                Write-Host "Skipping cloning for all missing repositories."
+            }
+            "T" {
+                foreach ($missingRepo in $missingRepos) {
+                    Write-Host "Repository: $($missingRepo.Name)"
+                    $cloneAction = Read-PromptYesNo -Message "Do you want to clone this repository?" -Default "Y"
+                    if ($cloneAction) {
+                        Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory
+                    } else {
+                        Write-Host "Skipping $($missingRepo.Name)"
+                    }
+                }
+            }
+            default {
+                Write-Host "Invalid option. Skipping all cloning operations."
+            }
+        }
+    }
+
+    # Process repositories for updates
+    foreach ($repo in $repos) {
+        $repoDir = Join-Path -Path $ProfilesPath -ChildPath $repo.RepoName
+
+        # Check repository status
+        $repoStatus = Get-RepoStatus -Directory $repoDir -Branch $repo.Branch -RepoName $repo.Name -RepoUrl $repo.Url
         $repoStatuses += $repoStatus
     }
 
+    # Display repository statuses and handle updates
     $repoStatuses | ForEach-Object {
         $color = switch ($_.Changes) {
-            "No changes" { "`e[32m" }  # Green
-            "Uncommitted changes" { "`e[34m" }  # Blue
-            "Local changes ahead of remote" { "`e[33m" }  # Yellow
-            "Remote changes ahead of local" { "`e[33m" }  # Yellow
-            "Error: Directory does not exist" { "`e[31m" }  # Red
-            default { "`e[0m" }  # Reset
+            "No changes"                  { "Green" }
+            "Uncommitted changes"         { "Blue" }
+            "Local changes ahead of remote" { "Yellow" }
+            "Remote changes ahead of local" { "Yellow" }
+            default                       { "Red" }
         }
-        $_ | Add-Member -MemberType NoteProperty -Name 'ChangesColor' -Value $color
+        Write-Host "[$($_.Name)] Branch: $($_.Branch) - Changes: $($_.Changes)" -ForegroundColor $color
     }
 
-    # Format the table with colorized output
-    $repoStatuses | Format-Table -Property Name, Branch, @{Name="Changes";Expression={"$($_.ChangesColor)$($_.Changes)`e[0m"}} -AutoSize
-
     # Check if any changes need to be applied
-    $changesNeeded = $repoStatuses | Where-Object { $_.Changes -ne "No changes" }
+    $changesNeeded = $repoStatuses | Where-Object { $_.Changes -and $_.Changes -ne "No changes" -and -not $_.Changes.StartsWith("Error") }
 
     if ($changesNeeded) {
         foreach ($repoStatus in $changesNeeded) {
+            if ($declineAll) {
+                Write-Host "Skipping changes for repository: $($repoStatus.Name) due to 'Decline All' selection."
+                continue
+            }
+
             Write-Host "Repository: $($repoStatus.Name), Changes: $($repoStatus.Changes)"
-            $action = Read-Host "Apply changes? (Y)es (N)o (A)ccept All (D)ecline All"
-                
+            $action = Read-Host "Apply changes? (Y)es (N)o (A)ll (D)ecline All"
+
             switch ($action.ToUpper()) {
                 "Y" {
                     Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes
@@ -101,15 +245,19 @@ function Update-GithubProfiles {
                 }
                 "A" {
                     Write-Host "Applying changes to all repositories."
-                    foreach ($repoStatus in $changesNeeded) {
-                        Sync-Repository -Directory $repoStatus.Directory -Branch $repoStatus.Branch -Changes $repoStatus.Changes -ApplyAll
-                        $changesApplied[$repoStatus.Name] = $true
+                    foreach ($status in $changesNeeded) {
+                        Sync-Repository -Directory $status.Directory -Branch $status.Branch -Changes $status.Changes
+                        $changesApplied[$status.Name] = $true
                     }
                     break
                 }
                 "D" {
                     Write-Host "Declined all changes."
-                    break
+                    $declineAll = $true  # Set flag to skip all remaining items
+                    continue
+                }
+                default {
+                    Write-Host "Invalid selection. Skipping."
                 }
             }
         }
@@ -125,4 +273,5 @@ function Update-GithubProfiles {
     }
 }
 
+# Run the updater function if the script is not being sourced
 if ($MyInvocation.ScriptName -ne ".") { Update-GithubProfiles }

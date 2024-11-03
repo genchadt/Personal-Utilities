@@ -1,20 +1,23 @@
 [
     {
         "Name": "PowerShell Profile",
+        "RepoName": "PowerShell-Profile",
         "Url": "https://github.com/genchadt/PowerShell-Profile.git",
         "Branch": "main",
         "Dir": "%USERPROFILE%\\Documents\\PowerShell"
     },
     {
         "Name": "neovim Profile",
+        "RepoName": "Vim-Profile",
         "Url": "https://github.com/genchadt/Vim-Profile.git",
         "Branch": "main",
         "Dir": "%LOCALAPPDATA%\\nvim"
     },
     {
         "Name": "Windows Terminal (Stable) Profile",
+        "RepoName": "Terminal-Profile",
         "Url": "https://github.com/genchadt/Terminal-Profile.git",
         "Branch": "main",
-        "Dir": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState"
+        "Dir": "%LOCALAPPDATA%\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe"
     }
 ]
