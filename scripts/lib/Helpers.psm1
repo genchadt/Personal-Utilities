@@ -1,7 +1,9 @@
 # lib\helpers.psm1
 
 function Grant-Elevation {
-    if (Get-Ccommand "gsudo" -ErrorAction SilentlyContinue) {
+    [CmdletBinding()]
+    param ()
+    if (Get-Command "gsudo" -ErrorAction SilentlyContinue) {
         & gsudo
     } else {
         Install-Gsudo
