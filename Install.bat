@@ -1,5 +1,6 @@
 :: Install script
 :: Checks if PowerShell is installed. If not, install it.
+:: Probably obsolete since PowerShell Core is now installed by default in Windows 10+
 
 @echo off
 
