@@ -22,12 +22,6 @@ Starts my package installer.
 
 Invokes Microsoft Activation System in case of activation issues.
 
-### Invoke-ReforgerInputs
-
-Continually presses the "Enter" key inside Arma Reforger's window since no queueing feature currently exists.
-
-Reforger doesn't have to be focused, so you can go about other business while waiting on a game.
-
 ### New-NetFirewallRule-CurrentDirectory
 
 Creates a new firewall rule blocking everything inside the current directory.
@@ -39,6 +33,12 @@ Finds compatible images and compresses them using the required chdman utility.
 ### Restart-Explorer
 
 Self-explanatory. Stops explorer.exe forcefully and then starts it.
+
+### Invoke-ReforgerInputs
+
+Continually presses the "Enter" key inside Arma Reforger's window since no queueing feature currently exists.
+
+Reforger doesn't have to be focused, so you can go about other business while waiting on a game.
 
 ### Set-Visibility
 
