@@ -82,7 +82,6 @@ function Set-FileAttribute {
     }
 }
 
-# Example usage with parameter splatting
 $params = @{
     Path = $Path
     Hidden = $Hidden
