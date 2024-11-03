@@ -2,44 +2,63 @@
 
 ## Overview
 
-This repository contains a collection of personal utilities that I find useful in various aspects of my work and projects.
+This repository contains a collection of personal utilities that I find useful.
 
 ## Utility Scripts
 
-### 1. ActivationScripts-Microsoft.ps1
+### Compress-Video
 
-- Description: Script to handle Microsoft product activations.
+Compresses a video file using the `ffmpeg` command-line tool. Usually reduces file size while preserving quality.
 
-### 2. AutoAddPath.ps1
+### Install-Fonts
 
-- Description: Script to automatically add a series of paths to the system environment variables.
+Installs fonts recursively from the current directory using Windows' built-in tool.
 
-### 3. Block-CurrentDirectoryFW.ps1
+### Install-Packages
 
-- Description: Script to block the current directory using Windows Firewall.
+Starts my package installer.
 
-### 4. Chocolatey-Packages-Setup.ps1
+### Invoke-MAS
 
-- Description: Script to set up Chocolatey packages.
+Invokes Microsoft Activation System in case of activation issues.
 
-### 5. Compress-IsoToGz.ps1
+### Invoke-ReforgerInputs
 
-- Description: Script to compress ISO files to Gzip format.
+Continually presses the "Enter" key inside Arma Reforger's window since no queueing feature currently exists.
 
-### 6. Extract-Archives.ps1
+Reforger doesn't have to be focused, so you can go about other business while waiting on a game.
 
-- Description: Script to extract various archive formats.
-- Usage: Add usage instructions or important notes.
+### New-NetFirewallRule-CurrentDirectory
 
-### 7. MarkHidden.ps1
+Creates a new firewall rule blocking everything inside the current directory.
 
-- Description: Script to mark files or directories as hidden.
-- Usage: Add usage instructions or important notes.
+### Optimize-PSX
 
-### 8. Optimize-PSX.ps1
+Finds compatible images and compresses them using the required chdman utility.
 
-- Description: Script to optimize PowerShell scripts.
-- Usage: Add usage instructions or important notes.
+### Restart-Explorer
+
+Self-explanatory. Stops explorer.exe forcefully and then starts it.
+
+### Set-Visibility
+
+Quickly sets the hidden attribute of files and folders.
+
+### Sync-TerminalSettings
+
+Syncs loaded Windows Terminal settings with the repository maintained version.
+
+### Update-GitHubProfiles
+
+Updates various local profiles by pulling changes from remote GitHub repositories.
+
+### Update-M365
+
+Invokes the Office C2R Client to upgrade M365 apps in case of issues.
+
+### Update-Spicetify
+
+Updates Spicetify to the latest version.
 
 ## Getting Started
 
