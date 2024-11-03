@@ -5,9 +5,6 @@ Restart the Windows Explorer process.
 .DESCRIPTION
 Restart the Windows Explorer process, which is necessary after certain system
 settings have been changed.
-
-.EXAMPLE
-Restart-Explorer
 #>
 function Restart-Explorer {
     # Restart the Windows Explorer process.
