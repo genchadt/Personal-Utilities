@@ -60,6 +60,7 @@ function Compress-Video {
       [string]$VideoPath,
       [switch]$IgnoreCompressed,
       [switch]$DeleteSource,
+      [array]$extensions,
       [array]$ffmpeg_args
    )
 
