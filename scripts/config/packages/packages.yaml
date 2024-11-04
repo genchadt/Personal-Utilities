@@ -148,6 +148,15 @@ packages:
       - Limited
       - Standard
 
+  - id: Notepad++.Notepad++
+    name: Notepad++
+    managers:
+      winget:
+        available: true
+    categories:
+      - Limited
+      - Standard
+
   # File Management and Sharing
   - id: Google.Drive
     name: Google Drive
