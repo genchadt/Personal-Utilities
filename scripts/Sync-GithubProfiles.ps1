@@ -1,8 +1,9 @@
 param (
     [string]$ConfigurationPath = "$PSScriptRoot/config/github/profiles_github.json",
-    [string]$ProfilesPath = "$PSScriptRoot/profiles",
-    [switch]$Verbose
+    [string]$ProfilesPath = "$PSScriptRoot/profiles"
 )
+
+Import-Module "$PSScriptRoot/lib/Helpers.psm1"
 
 function Sync-GithubProfiles {
     [CmdletBinding()]
@@ -24,6 +25,8 @@ function Sync-GithubProfiles {
         if ($confirmation) {
             Write-Verbose "Creating profiles path '$ProfilesPath'"
             New-Item -Path $ProfilesPath -ItemType Directory | Out-Null
+        } else {
+            throw "Profiles path creation declined by the user."
         }
     }
 
@@ -79,32 +82,32 @@ function Sync-GithubProfiles {
         }
 
         # Prompt user to accept or decline overwrites
-        $userResponse = Read-Host "Do you want to overwrite these files? (Y)es or (N)o"
+        $userResponse = Read-Prompt -Message "Are you sure you want to overwrite these files?" -Prompt "YN" -Default "N"
 
-        if ($userResponse -eq "Y") {
+        if ($userResponse -eq $true) {  # Adjusted condition
             foreach ($profile in $overwriteFiles) {
                 try {
                     Copy-Profile -SourcePath $profile.SourcePath -TargetPath $profile.TargetPath -Verbose:$VerbosePreference
-                    Write-Host "Profile '$($profile.ProfileName)' synchronized successfully to '$($profile.TargetPath)'."
+                    Write-Host "Profile '$($profile.ProfileName)' synchronized successfully to '$($profile.TargetPath)'." -ForegroundColor Green
                 } catch {
                     Write-Error "Failed to sync profile '$($profile.ProfileName)': $_"
                 }
             }
         } else {
-            Write-Host "Operation cancelled by the user. No files were overwritten."
+            Write-Host "Operation cancelled by the user. No files were overwritten." -ForegroundColor Cyan
         }
     } else {
-        Write-Host "No files require overwriting. All profiles are up to date."
+        Write-Host "No files require overwriting. All profiles are up to date." -ForegroundColor Green
     }
 }
 
 function Test-FileConflicts {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Position = 0)]
         [string]$SourcePath,
 
-        [Parameter(Mandatory)]
+        [Parameter(Position = 1)]
         [string]$TargetPath
     )
 
@@ -130,11 +133,11 @@ function Test-FileConflicts {
 function Copy-Profile {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Position = 0)]
         [ValidateNotNullOrEmpty()]
         [string]$SourcePath,
 
-        [Parameter(Mandatory)]
+        [Parameter(Position = 1)]
         [ValidateNotNullOrEmpty()]
         [string]$TargetPath
     )
@@ -158,6 +161,5 @@ function Copy-Profile {
 $params = @{
     ConfigurationPath = $ConfigurationPath
     ProfilesPath      = $ProfilesPath
-    Verbose           = $Verbose
 }
 Sync-GithubProfiles @params

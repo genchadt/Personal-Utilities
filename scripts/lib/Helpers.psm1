@@ -50,15 +50,34 @@ function Grant-Elevation {
     }
 }
 
+<#
+.SYNOPSIS
+    Read-Prompt - Prompt the user to enter a response.
+
+.DESCRIPTION
+    Prompts the user to enter a response, and returns a boolean value based on the response. The prompt is
+    constructed from the passed message and possible responses. If the user enters nothing, the default response
+    is returned. If the user enters an invalid response, a message is printed and the function continues prompting.
+
+.EXAMPLE
+    $response = Read-Prompt -Message "Are you sure you want to proceed?"
+
+.EXAMPLE
+    $response = Read-Prompt -Message "Are you sure you want to proceed?" -Prompt "YN"
+
+.EXAMPLE
+    $response = Read-Prompt -Message "Are you sure you want to proceed?" -Prompt "YNAD" -Default "N"
+#>
 function Read-Prompt {
     param (
-        [Parameter(Position=0)]
+        [Parameter(Position=0, Mandatory=$true)]
         [string]$Message,
 
         [Parameter(Position=1)]
         [string]$Prompt = "YN",  # Default prompt to "Y" and "N"
 
         [Parameter(Position=2)]
+        [ValidateSet("Y", "N", "A", "D")]
         [string]$Default = "Y"   # Default response to "Y"
     )
 
@@ -67,48 +86,56 @@ function Read-Prompt {
         throw "Read-Prompt: Invalid Prompt value. It must contain only 'Y', 'N', 'A', or 'D' characters in any combination."
     }
 
-    # Validate that $Default is a single character and one of the options in $Prompt
-    if ($Default -notmatch '^[YNAD]$' -or $Prompt -notcontains $Default) {
+    # Validate that $Default is one of the characters in $Prompt
+    if ($Default -notmatch '^[YNAD]$' -or $Prompt -notmatch $Default) {
         throw "Read-Prompt: Invalid Default value. It must be a single character: 'Y', 'N', 'A', or 'D', and must be included in Prompt."
     }
 
-    # Define options based on $Prompt
-    $options = @{}
-    if ($Prompt -contains "Y") { $options["Y"] = "(y)es" }
-    if ($Prompt -contains "N") { $options["N"] = "(n)o" }
-    if ($Prompt -contains "A") { $options["A"] = "(a)ccept all" }
-    if ($Prompt -contains "D") { $options["D"] = "(d)eny all" }
-
-    # Construct prompt with default option capitalized
-    $promptOptions = foreach ($key in $options.Keys) {
-        if ($key -eq $Default) {
-            $options[$key] = $options[$key].Replace("(", "(" + $key.ToUpper() + ")")
+    # Define options based on $Prompt with correct capitalization
+    $options = [ordered]@{}
+    foreach ($char in $Prompt.ToCharArray()) {
+        $isDefault = $char -eq $Default
+        switch ($char) {
+            "Y" { $options[$char] = $isDefault ? "(Y)es" : "(y)es" }
+            "N" { $options[$char] = $isDefault ? "(N)o" : "(n)o" }
+            "A" { $options[$char] = $isDefault ? "(A)ll" : "(a)ll" }
+            "D" { $options[$char] = $isDefault ? "(D)eny" : "(d)eny" }
         }
-        $options[$key]
     }
 
-    $prompt = "$Message " + ($promptOptions -join "/") + ": "
+    # Join the prompt options
+    $promptOptionsString = $options.Values -join "/"
+    $prompt = "$Message [$promptOptionsString] "
 
-    # Get user input
-    $response = Read-Host $prompt
+    while ($true) {
+        # Get user input
+        $response = Read-Host -Prompt $prompt
 
-    # Use default response if input is blank
-    if ([string]::IsNullOrWhiteSpace($response)) {
-        $response = $Default
-    }
-
-    # Determine return values based on response
-    switch -regex ($response.ToUpper()) {
-        "^[Y]$" { return $true }
-        "^[N]$" { return $false }
-        "^[A]$" { return "AcceptAll" }
-        "^[D]$" { return "DenyAll" }
-        default  { 
-            Write-Host "Invalid response. Please try again."
-            return $null
+        # Use default response if input is blank
+        if ([string]::IsNullOrWhiteSpace($response)) {
+            $response = $Default
         }
+
+        # Convert single-letter responses to full response
+        $response = $response.ToUpper()
+        if ($response.Length -eq 1) {
+            # Check if the single letter response is valid
+            if ($Prompt -match $response) {
+                return $(switch ($response) {
+                    "Y" { $true }
+                    "N" { $false }
+                    "A" { "AcceptAll" }
+                    "D" { "DenyAll" }
+                })
+            }
+        }
+
+        Write-Host "Invalid response. Please enter one of: $promptOptionsString" -ForegroundColor Yellow
     }
 }
+
+# Example usage:
+# $userResponse = Read-Prompt -Message "Are you sure you want to overwrite these files?" -Prompt "YN" -Default "N"
 
 <#
 .SYNOPSIS
