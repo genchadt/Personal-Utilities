@@ -172,7 +172,7 @@ function Install-Packages {
 }
 
 $params = @{
-    ConfigurationFilePath = $ConfigurationFilePath
-    Force = $Force
+    ConfigurationFilePath   = $ConfigurationFilePath
+    Force                   = $Force
 }
 Install-Packages @params

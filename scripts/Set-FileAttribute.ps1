@@ -72,10 +72,10 @@ function Set-FileAttribute {
 }
 
 $params = @{
-    Path = $Path
-    Hidden = $Hidden
+    Path    = $Path
+    Hidden  = $Hidden
     Recurse = $Recurse
-    Force = $Force
-    System = $System
+    Force   = $Force
+    System  = $System
 }
 Set-FileAttribute @params
