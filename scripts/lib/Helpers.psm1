@@ -105,7 +105,7 @@ function Read-Prompt {
 
     # Join the prompt options
     $promptOptionsString = $options.Values -join "/"
-    $prompt = "$Message [$promptOptionsString] "
+    $prompt = "$Message [$promptOptionsString]"
 
     while ($true) {
         # Get user input
@@ -155,7 +155,7 @@ function Test-Module {
                 Install-Module -Name $ModuleName -Scope CurrentUser -Force
             }
             catch {
-                Write-Error "Test-Module: Failed to install $ModuleName module: $_"
+                throw "Test-Module: Failed to install $ModuleName module: $_"
                 exit
             }
         }
@@ -194,7 +194,7 @@ function Update-PowerShell {
             Write-Host "PowerShell is up to date."
         }
     } catch {
-        Write-Warning "Failed to check or update PowerShell: $_"
+        throw "Failed to check or update PowerShell: $_"
     }
     return $false
 }
