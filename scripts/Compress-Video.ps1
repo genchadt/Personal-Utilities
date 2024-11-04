@@ -130,9 +130,12 @@ function Compress-Video {
       }
    }
 }
-Compress-Video `
-   -VideoPath $VideoPath `
-   -IgnoreCompressed $IgnoreCompressed `
-   -DeleteSource $DeleteSource `
-   -ffmpeg_args $ffmpeg_args `
-   -extensions $extensions
+
+$params = @{
+   VideoPath = $VideoPath
+   IgnoreCompressed = $IgnoreCompressed
+   DeleteSource = $DeleteSource
+   ffmpeg_args = $ffmpeg_args
+   extensions = $extensions
+}
+Compress-Video @params

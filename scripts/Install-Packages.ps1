@@ -171,7 +171,8 @@ function Install-Packages {
     Write-Host "Package installation complete." -ForegroundColor Green
 }
 
-# Execute the Install-Packages function with the script's parameters
-Install-Packages `
-    -ConfigurationFilePath $ConfigurationFilePath `
-    -Force $Force
+$params = @{
+    ConfigurationFilePath = $ConfigurationFilePath
+    Force = $Force
+}
+Install-Packages @params

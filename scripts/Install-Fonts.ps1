@@ -91,7 +91,10 @@ function Install-Fonts {
 
     Write-Host "All font installations completed." -ForegroundColor Green
 }
-Install-Fonts `
-    -Path $Path `
-    -Filter $Filter `
-    -Force:$Force
+
+$params = @{
+    Path = $Path
+    Filter = $Filter
+    Force = $Force
+}
+Install-Fonts @params

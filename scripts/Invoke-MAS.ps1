@@ -15,4 +15,8 @@ function Invoke-MAS {
         Write-Warning "Invoke-MAS: Failed to invoke MAS: $_"
     }
 }
-Invoke-MAS -MASInstallerPath $MASInstallerPath
+
+$params = @{
+    MASInstallerPath = $MASInstallerPath
+}
+Invoke-MAS @params

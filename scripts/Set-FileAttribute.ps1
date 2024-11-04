@@ -71,9 +71,11 @@ function Set-FileAttribute {
     }
 }
 
-Set-FileAttribute `
-    -Path $Path `
-    -Recurse $Recurse `
-    -Force $Force
-    -Hidden $Hidden `
-    -System $System `
+$params = @{
+    Path = $Path
+    Hidden = $Hidden
+    Recurse = $Recurse
+    Force = $Force
+    System = $System
+}
+Set-FileAttribute @params

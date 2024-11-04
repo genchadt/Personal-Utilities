@@ -16,5 +16,4 @@ function Restart-Explorer {
     Start-Process explorer.exe
 }
 
-# Restart the Explorer process.
 Restart-Explorer

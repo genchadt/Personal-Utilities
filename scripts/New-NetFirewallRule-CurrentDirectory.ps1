@@ -73,4 +73,9 @@ function New-NetFirewallRule-CurrentDirectory {
     }
 }
 
-New-NetFirewallRule-CurrentDirectory
+$params = @{
+    check = $check
+    delete = $delete
+    list = $list
+}
+New-NetFirewallRule-CurrentDirectory $params

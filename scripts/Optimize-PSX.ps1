@@ -1,10 +1,9 @@
 <#
 .SYNOPSIS
-    Optimize-PSX.PS1 - This script is designed to optimize PSX/PS2 images for emulator use. It extracts image files to CWD and then compresses to *.CHD format.
+    Optimize-PSX.PS1 - This script optimizes PSX/PS2 images for emulator use by extracting image files to the current working directory and compressing them to *.CHD format.
 
 .DESCRIPTION
-    !! This script must be run with Administrator privileges. !!
-    This script extracts image files to CWD and then compresses them to *.CHD format. Ensure that 7-zip and chdman are installed and added to PATH!
+    The script extracts image files to the current working directory and then compresses them to *.CHD format using `chdman`. Ensure that 7-Zip and `chdman` are installed and added to the system PATH.
 
 .PARAMETER DeleteArchive
     Deletes the source archive automatically without prompting.
@@ -23,31 +22,31 @@
 
 .EXAMPLE
     .\Optimize-PSX.ps1
-    Extracts image files to CWD and then compresses them to *.CHD format.
+    Extracts image files to the current working directory and compresses them to *.CHD format.
 
 .EXAMPLE
     .\Optimize-PSX.ps1 -SkipArchive
-    Extracts image files to CWD and then compresses them to *.CHD format. Deletes the source archive automatically without prompting.
+    Skips the extraction of archives and compresses existing image files to *.CHD format.
 
 .EXAMPLE
     .\Optimize-PSX.ps1 -DeleteArchive -DeleteImage -Force
-    Extracts image files to CWD and then compresses them to *.CHD format. Overwrites existing files and deletes sources without prompting.
+    Extracts image files, compresses them to *.CHD format, and deletes source files without prompting.
 
 .INPUTS
     None
 
 .OUTPUTS
     String
-    Logs actions to console.
+    Logs actions to the console.
 
 .LINK
-    7-Zip: [7-Zip Website](https://www.7-zip.org)
-    chdman: [chdman Documentation](https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman)
+    7-Zip: https://www.7-zip.org
+    chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman
 
 .NOTES
     Administrative privileges are required to run this script.
     Ensure required programs are installed and added to PATH.
-    Required programs: 7-zip, chdman
+    Required programs: 7-Zip, chdman
 
     Script Version: 1.2.0
     Author: Chad
@@ -60,11 +59,11 @@
 ###############################################
 
 param (
-    [Alias("f")][switch]$Force,               # Force overwriting
-    [Alias("silent")][switch]$SilentMode,    # Silent mode
-    [Alias("sa")][switch]$SkipArchive,       # Skip archive extraction
-    [switch]$DeleteArchive,                   # Delete the archive after extraction
-    [switch]$DeleteImage                      # Delete the image after compression
+    [Alias("f")][switch]$Force,             # Force overwriting
+    [Alias("silent")][switch]$SilentMode,   # Silent mode
+    [Alias("sa")][switch]$SkipArchive,      # Skip archive extraction
+    [switch]$DeleteArchive,                 # Delete the archive after extraction
+    [switch]$DeleteImage                    # Delete the image after compression
 )
 
 ###############################################
@@ -101,9 +100,41 @@ $FileOperations = @{
 }
 
 ###############################################
+# Helper Functions
+###############################################
+
+function Write-Separator {
+    [CmdletBinding()]
+    param (
+        [string]$Char = "=",
+        [int]$Length = 50,
+        [ConsoleColor]$Color = "DarkGray"
+    )
+    $line = $Char * $Length
+    Write-Host $line -ForegroundColor $Color
+}
+
+###############################################
 # Functions
 ###############################################
 
+<#
+.SYNOPSIS
+    Extracts supported archive files in the specified path.
+
+.DESCRIPTION
+    Searches for archive files (.7z, .gz, .rar, .zip) in the specified path and extracts them using the 7Zip4Powershell module.
+    Extracted image files are moved to the parent directory.
+
+.PARAMETER Path
+    The directory path where archives are located.
+
+.EXAMPLE
+    Expand-Archives -Path "C:\Games\Archives"
+
+.NOTES
+    Requires the 7Zip4Powershell module to be installed and imported.
+#>
 function Expand-Archives {
     param (
         [string]$Path
@@ -111,7 +142,7 @@ function Expand-Archives {
 
     if (-not $SilentMode) {
         Write-Host "Entering Archive Mode..." -ForegroundColor Cyan
-        Write-Host "==========================================" -ForegroundColor DarkGray
+        Write-Separator
     }
 
     # Ensure the 7Zip4Powershell module is loaded
@@ -134,7 +165,7 @@ function Expand-Archives {
     if ($archives.Count -eq 0) {
         if (-not $SilentMode) {
             Write-Host "Archive Mode skipped: No archive files found!" -ForegroundColor Cyan
-            Write-Host "------------------------------------------" -ForegroundColor DarkGray
+            Write-Separator
         }
         return
     }
@@ -151,7 +182,7 @@ function Expand-Archives {
             $hashValue = Get-FileHash -Algorithm SHA256 -LiteralPath $archive.FullName | Select-Object -ExpandProperty Hash
             if (-not $SilentMode) {
                 Write-Host "SHA-256 hash: $hashValue" -ForegroundColor Cyan
-                Write-Host "------------------------------------------" -ForegroundColor DarkGray
+                Write-Separator
             }
         }
         catch {
@@ -173,7 +204,7 @@ function Expand-Archives {
 
             if (-not $SilentMode) {
                 Write-Host "Extraction complete." -ForegroundColor Green
-                Write-Host "==========================================" -ForegroundColor DarkGray
+                Write-Separator
             }
         }
         catch {
@@ -203,6 +234,22 @@ function Expand-Archives {
     $FileOperations.FileSizeImage = (Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.bin$|\.cue$|\.iso$|\.gdi$|\.raw$' } | Measure-Object -Property Length -Sum).Sum
 }
 
+<#
+.SYNOPSIS
+    Compresses image files to CHD format using chdman.
+
+.DESCRIPTION
+    Searches for image files (.cue, .gdi, .iso) in the specified path and compresses them to CHD format using chdman.
+
+.PARAMETER Path
+    The directory path where image files are located.
+
+.EXAMPLE
+    Compress-Images -Path "C:\Games\Images"
+
+.NOTES
+    Requires chdman to be installed and available in the system PATH.
+#>
 function Compress-Images {
     param (
         [string]$Path
@@ -210,7 +257,7 @@ function Compress-Images {
 
     if (-not $SilentMode) {
         Write-Host "Entering Image Mode..." -ForegroundColor Cyan
-        Write-Host "==========================================" -ForegroundColor DarkGray
+        Write-Separator
     }
 
     $images = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.cue$|\.gdi$|\.iso$' }
@@ -218,7 +265,7 @@ function Compress-Images {
     if ($images.Count -eq 0) {
         if (-not $SilentMode) {
             Write-Host "Image Mode skipped: No image files found!" -ForegroundColor Yellow
-            Write-Host "------------------------------------------" -ForegroundColor DarkGray
+            Write-Separator
         }
         return
     }
@@ -246,7 +293,7 @@ function Compress-Images {
             if ($overwrite -eq 'N') {
                 if (-not $SilentMode) {
                     Write-Host "Conversion skipped for $($image.FullName)" -ForegroundColor Yellow
-                    Write-Host "------------------------------------------" -ForegroundColor DarkGray
+                    Write-Separator
                 }
                 continue
             }
@@ -269,7 +316,7 @@ function Compress-Images {
 
             if (-not $SilentMode) {
                 Write-Host "Conversion complete for $($image.FullName)" -ForegroundColor Green
-                Write-Host "------------------------------------------" -ForegroundColor DarkGray
+                Write-Separator
             }
         }
         catch {
@@ -281,6 +328,19 @@ function Compress-Images {
     $FileOperations.FileSizeCHD = (Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -eq '.chd' } | Measure-Object -Property Length -Sum).Sum
 }
 
+<#
+.SYNOPSIS
+    Removes specified files based on user confirmation.
+
+.DESCRIPTION
+    Identifies archive and image files that are candidates for deletion, and prompts the user for confirmation to delete them.
+
+.PARAMETER Path
+    The directory path where deletion candidates are located.
+
+.NOTES
+    Files that can be deleted include archives and image files.
+#>
 function Remove-DeletionCandidates {
     param (
         [string]$Path
@@ -301,20 +361,33 @@ function Remove-DeletionCandidates {
 
     if (-not $SilentMode) {
         Write-Host "File Deletion Candidates:" -ForegroundColor Cyan
-        Write-Host "==========================================" -ForegroundColor DarkGray
-        foreach ($candidate in $FileOperations.DeletionCandidates) {
-            Write-Host "    + $($candidate.FullName)" -ForegroundColor Cyan
-        }
-        Write-Host "------------------------------------------" -ForegroundColor DarkGray
+        Write-Separator
+        $FileOperations.DeletionCandidates | Select-Object FullName | Format-Table -AutoSize
+        Write-Separator
     }
 
+    $deleteAll = $false
     foreach ($candidate in $FileOperations.DeletionCandidates) {
+        if ($deleteAll -or $Force) {
+            try {
+                Remove-Item -Path $candidate.FullName -Force
+                $FileOperations.TotalFileOperations++
+                if (-not $SilentMode) {
+                    Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
+                }
+            }
+            catch {
+                Write-Error "Failed to delete '$($candidate.FullName)': $_"
+            }
+            continue
+        }
+
         $userChoice = ""
         while ($userChoice -notin @('Y', 'A', 'N', 'D')) {
-            $userChoice = Read-Host "Are you sure you want to delete '$($candidate.FullName)'? (Y)es/(A)ll/(N)o/(D)one"
+            $userChoice = Read-Host "Delete '$($candidate.FullName)'? (Y)es/(A)ll/(N)o/(D)one"
             $userChoice = $userChoice.ToUpper()
             if ($userChoice -notin @('Y', 'A', 'N', 'D')) {
-                Write-Host "Invalid input. Please enter one of the following: Y, A, N, D." -ForegroundColor Yellow
+                Write-Host "Invalid input. Please enter Y, A, N, or D." -ForegroundColor Yellow
             }
         }
 
@@ -332,6 +405,7 @@ function Remove-DeletionCandidates {
                 }
             }
             'A' {
+                $deleteAll = $true
                 try {
                     Remove-Item -Path $candidate.FullName -Force
                     $FileOperations.TotalFileOperations++
@@ -342,8 +416,6 @@ function Remove-DeletionCandidates {
                 catch {
                     Write-Error "Failed to delete '$($candidate.FullName)': $_"
                 }
-                # Continue deleting without further prompts
-                continue
             }
             'N' {
                 if (-not $SilentMode) {
@@ -360,6 +432,16 @@ function Remove-DeletionCandidates {
     }
 }
 
+<#
+.SYNOPSIS
+    Displays a summary of the operations performed.
+
+.DESCRIPTION
+    Calculates size differences, time taken, and displays the summary of the operations performed during the script execution.
+
+.NOTES
+    Outputs the summary to the console.
+#>
 function Summarize {
     $EndTime = Get-Date
     $EstimatedRuntime = $EndTime - $ScriptAttributes.StartTime
@@ -394,21 +476,32 @@ function Summarize {
     # List created CHD files
     if ($FileOperations.CHDFileList.Count -gt 0) {
         Write-Host "CHD Files Created Successfully:" -ForegroundColor Green
-        foreach ($file in $FileOperations.CHDFileList) {
-            Write-Host "    + $file" -ForegroundColor Green
-        }
+        $FileOperations.CHDFileList | Select-Object | Format-Table -AutoSize
     }
     else {
         Write-Host "No CHD files were created." -ForegroundColor Yellow
     }
 
-    Write-Host "==========================================" -ForegroundColor DarkGray
+    Write-Separator
 }
 
 ###############################################
 # Main Logic
 ###############################################
 
+<#
+.SYNOPSIS
+    Main function to optimize PSX/PS2 images.
+
+.DESCRIPTION
+    Orchestrates the extraction of archives, compression of images, and cleanup of files based on parameters.
+
+.PARAMETER Path
+    The directory path where the operations are to be performed.
+
+.NOTES
+    Calls other functions: Expand-Archives, Compress-Images, Remove-DeletionCandidates, Summarize.
+#>
 function Optimize-PSX {
     param (
         [string]$Path = $PWD
@@ -424,7 +517,7 @@ function Optimize-PSX {
             Write-Host "Written in PowerShell" -ForegroundColor Cyan
             Write-Host "Uses 7-Zip: https://www.7-zip.org" -ForegroundColor Cyan
             Write-Host "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -ForegroundColor Cyan
-            Write-Host "==========================================" -ForegroundColor DarkGray
+            Write-Separator
         }
 
         if (-not $SkipArchive) {
@@ -468,12 +561,11 @@ function Optimize-PSX {
     }
 }
 
-params = @{
-    Force = $Force
-    SilentMode = $SilentMode
-    SkipArchive = $SkipArchive
-    DeleteArchive = $DeleteArchive
-    DeleteImage = $DeleteImage
+$params = @{
+    Force          = $Force
+    SilentMode     = $SilentMode
+    SkipArchive    = $SkipArchive
+    DeleteArchive  = $DeleteArchive
+    DeleteImage    = $DeleteImage
 }
-
 Optimize-PSX @params

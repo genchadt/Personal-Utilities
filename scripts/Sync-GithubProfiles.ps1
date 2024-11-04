@@ -154,4 +154,10 @@ function Copy-Profile {
         throw
     }
 }
-Sync-GithubProfiles -ConfigurationPath $ConfigurationPath -ProfilesPath $ProfilesPath -Verbose:$Verbose.IsPresent
+
+$params = @{
+    ConfigurationPath = $ConfigurationPath
+    ProfilesPath      = $ProfilesPath
+    Verbose           = $Verbose
+}
+Sync-GithubProfiles @params

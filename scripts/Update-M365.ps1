@@ -19,3 +19,9 @@ function Update-M365 {
         Write-Warning "Update-M365: Failed to start Office update process: $_"
     }    
 }
+
+$params = @{
+    C2RClientPath = $C2RClientPath
+    C2R_args      = $C2R_args
+}
+Update-M365 @params
