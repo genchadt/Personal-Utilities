@@ -147,6 +147,8 @@ function Read-Prompt {
 
 function Set-WindowTitle {
     param (
+        [Alias("t")]
+        [Parameter(Position=0, Mandatory=$true)]
         [string]$title
     )
     
@@ -218,4 +220,5 @@ Export-ModuleMember -Function `
     Update-PowerShell, `
     Assert-Winget, `
     Read-Prompt, `
+    Set-WindowTitle, `
     Test-Module
