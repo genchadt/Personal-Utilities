@@ -27,7 +27,9 @@
 #>
 [CmdletBinding()]
 param (
+   [Alias("path")]
    [Parameter(Position = 0, Mandatory = $true)]
+   [ValidateScript({Test-Path $_})]
    [string]$VideoPath = (Get-Location).Path,
 
    [Parameter(Position = 1, Mandatory = $false)]
@@ -64,8 +66,14 @@ function Compress-Video {
       [array]$ffmpeg_args
    )
 
-   $extensions = ".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv"
    $video_files = @()
+
+   # Script won't work without ffmpeg
+   if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+      Write-Error "FFmpeg is not installed or not in the system's PATH."
+      Write-Error "Please install FFmpeg or add it to PATH and try again."
+      return
+   }
    
    if (Test-Path $VideoPath -PathType Container) {
       Write-Verbose "Searching for video files matching extension rules in: $VideoPath"
@@ -96,7 +104,6 @@ function Compress-Video {
          }
       }
 
-      # Files to be compressed based on user response
       $confirmation_responses[$file.Name] = 'Y'
    }
 
@@ -108,7 +115,7 @@ function Compress-Video {
 
       $output_path = Join-Path (Split-Path $file.FullName) "$($([System.IO.Path]::GetFileNameWithoutExtension($file.FullName)))_compressed.mp4"
 
-      # Populate null placeholders in ffmpeg file arguments
+      # Placeholders for path arguments were null... until now!
       $ffmpeg_args[1] = $file.FullName
       $ffmpeg_args[-1] = $output_path
 
@@ -118,6 +125,12 @@ function Compress-Video {
          & ffmpeg @ffmpeg_args
          if ($LASTEXITCODE -eq 0) {
             Write-Host "Compression successful: $output_path" -ForegroundColor Green
+
+            $originalSize = (Get-Item $file.FullName).Length
+            $compressedSize = (Get-Item $output_path).Length
+            $savings = [math]::Round(($originalSize - $compressedSize) / $originalSize * 100, 2)
+            Write-Host "Size reduction: $savings% (From $([math]::Round($originalSize/1MB, 2))MB to $([math]::Round($compressedSize/1MB, 2))MB)" -ForegroundColor Green
+
             if ($DeleteSource) {
                Remove-Item -Path $file.FullName -Force
                Write-Host "Deleted source file: $($file.FullName)" -ForegroundColor Yellow
