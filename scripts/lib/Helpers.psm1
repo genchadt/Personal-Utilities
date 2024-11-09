@@ -144,6 +144,20 @@ function Read-Prompt {
 .DESCRIPTION
     Checks if the specified PowerShell module is installed. If it is not, it prompts the user to install it.
 #>
+
+function Set-WindowTitle {
+    param (
+        [string]$title
+    )
+    
+    $signature = @"
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool SetConsoleTitle(string lpConsoleTitle);
+"@
+    $type = Add-Type -MemberDefinition $signature -Name Win32SetConsoleTitle -Namespace Win32Functions -PassThru
+    $type::SetConsoleTitle($title)
+}
+
 function Test-Module {
     param (
         [string]$ModuleName
