@@ -1,3 +1,6 @@
+[CmdletBinding()]
+param ()
+
 function Restart-Explorer {
 <#
 .SYNOPSIS

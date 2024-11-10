@@ -1,3 +1,6 @@
+[CmdletBinding()]
+param ()
+
 function Send-ReforgerInput {
     <# .SYNOPSIS
         Send-ReforgerInput - Sends the "Enter" key to the Arma Reforger window to try and join games.

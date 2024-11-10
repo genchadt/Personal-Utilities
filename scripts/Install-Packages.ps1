@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param (
     [string]$ConfigurationFilePath,
     [switch]$Force

@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param(
     [string]$Path,
     [string]$Filter,
