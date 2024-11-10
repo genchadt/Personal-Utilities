@@ -1,3 +1,6 @@
+#region File Parsing
+
+#region Elevation
 function Assert-Gsudo {
 <#
 .SYNOPSIS
@@ -48,14 +51,16 @@ function Grant-Elevation {
         Assert-Gsudo
     }
 }
+#endregion
 
+#region Helper Utilities
 function Read-Prompt {
 <#
 .SYNOPSIS
     Read-Prompt - Prompt the user to enter a response.
 
 .DESCRIPTION
-    Prompts the user to enter a response, and returns a boolean value based on the response. The prompt is
+    Prompts the user to enter a response, and returns a value based on the response. The prompt is
     constructed from the passed message and possible responses. If the user enters nothing, the default response
     is returned. If the user enters an invalid response, a message is printed and the function continues prompting.
 
@@ -63,11 +68,11 @@ function Read-Prompt {
     The message to display to the user.
 
 .PARAMETER Prompt
-    Possible responses for the user. Valid options are "Y", "N", "A", and "D". The default is "YN".
+    Possible responses for the user. Valid options are "Y", "N", "A", "D", and "S". The default is "YN".
     Responses are case-insensitive and must be entered as a string.
 
 .PARAMETER Default
-    The default response to return if the user enters nothing. Valid options are "Y", "N", "A", or "D".
+    The default response to return if the user enters nothing. Valid options are "Y", "N", "A", "D", or "S".
     The response made default will be capitalized in the prompt to indicate its status.
 
 .EXAMPLE
@@ -77,7 +82,7 @@ function Read-Prompt {
     $response = Read-Prompt -Message "Are you sure you want to proceed?" -Prompt "YN"
 
 .EXAMPLE
-    $response = Read-Prompt -Message "Are you sure you want to proceed?" -Prompt "YNAD" -Default "N"
+    $response = Read-Prompt -Message "Are you sure you want to proceed?" -Prompt "YNADS" -Default "N"
 #>
     [CmdletBinding()]
     param (
@@ -88,18 +93,18 @@ function Read-Prompt {
         [string]$Prompt = "YN",  # Default prompt to "Y" and "N"
 
         [Parameter(Position=2)]
-        [ValidateSet("Y", "N", "A", "D")]
+        [ValidateSet("Y", "N", "A", "D", "S")]
         [string]$Default = "Y"   # Default response to "Y"
     )
 
-    # Validate that $Prompt contains only allowed characters: Y, N, A, D
-    if ($Prompt -notmatch '^[YNAD]+$') {
-        throw "Read-Prompt: Invalid Prompt value. It must contain only 'Y', 'N', 'A', or 'D' characters in any combination."
+    # Validate that $Prompt contains only allowed characters: Y, N, A, D, S
+    if ($Prompt -notmatch '^[YNADS]+$') {
+        throw "Read-Prompt: Invalid Prompt value. It must contain only 'Y', 'N', 'A', 'D', or 'S' characters in any combination."
     }
 
     # Validate that $Default is one of the characters in $Prompt
-    if ($Default -notmatch '^[YNAD]$' -or $Prompt -notmatch $Default) {
-        throw "Read-Prompt: Invalid Default value. It must be a single character: 'Y', 'N', 'A', or 'D', and must be included in Prompt."
+    if ($Default -notmatch '^[YNADS]$' -or $Prompt -notmatch $Default) {
+        throw "Read-Prompt: Invalid Default value. It must be a single character: 'Y', 'N', 'A', 'D', or 'S', and must be included in Prompt."
     }
 
     # Define options based on $Prompt with correct capitalization
@@ -107,36 +112,35 @@ function Read-Prompt {
     foreach ($char in $Prompt.ToCharArray()) {
         $isDefault = $char -eq $Default
         switch ($char) {
-            "Y" { $options[$char] = $isDefault ? "(Y)es" : "(y)es" }
-            "N" { $options[$char] = $isDefault ? "(N)o" : "(n)o" }
-            "A" { $options[$char] = $isDefault ? "(A)ll" : "(a)ll" }
-            "D" { $options[$char] = $isDefault ? "(D)eny" : "(d)eny" }
+            "Y" { $options[$char] = $isDefault ? "Y(es)" : "y(es)" }
+            "N" { $options[$char] = $isDefault ? "N(o)" : "n(o)" }
+            "A" { $options[$char] = $isDefault ? "A(ll)" : "a(ll)" }
+            "D" { $options[$char] = $isDefault ? "D(eny)" : "d(eny)" }
+            "S" { $options[$char] = $isDefault ? "S(uspend)" : "s(uspend)" }
         }
     }
 
-    # Join the prompt options
     $promptOptionsString = $options.Values -join "/"
     $prompt = "$Message [$promptOptionsString]"
 
     while ($true) {
-        # Get user input
         $response = Read-Host -Prompt $prompt
 
-        # Use default response if input is blank
         if ([string]::IsNullOrWhiteSpace($response)) {
             $response = $Default
         }
 
-        # Convert single-letter responses to full response
         $response = $response.ToUpper()
         if ($response.Length -eq 1) {
-            # Check if the single letter response is valid
             if ($Prompt -match $response) {
                 return $(switch ($response) {
+                    # boolean responses
                     "Y" { $true }
                     "N" { $false }
+                    # string responses
                     "A" { "AcceptAll" }
                     "D" { "DenyAll" }
+                    "S" { "Suspend" }
                 })
             }
         }
@@ -144,7 +148,7 @@ function Read-Prompt {
         Write-Host "Invalid response. Please enter one of: $promptOptionsString" -ForegroundColor Yellow
     }
 }
-    
+
 function Get-WindowTitle {
 <#
 .SYNOPSIS
@@ -202,37 +206,38 @@ The title to set for the console window.
 }
 
 function Test-Module {
-<#
-.SYNOPSIS
-    Test-Module - Checks if a module is installed and installs it if not.
-
-.DESCRIPTION
-    Checks if the specified PowerShell module is installed. If it is not, it prompts the user to install it.
-
-.PARAMETER ModuleName
-    The name of the PowerShell module to check for.
-
-.EXAMPLE
-    Test-Module -ModuleName "YamlDotNet"
-#>
-    [CmdletBinding()]
-    param (
-        [string]$ModuleName
-    )
-    if (-not (Get-Module -ListAvailable -Name $ModuleName)) {
-        Write-Host "$ModuleName module not found." -ForegroundColor Yellow
-        if (Read-Prompt -Message "Do you want to install $ModuleName module?") {
-            try {
-                Install-Module -Name $ModuleName -Scope CurrentUser -Force
-            }
-            catch {
-                throw "Test-Module: Failed to install $ModuleName module: $_"
-                exit
+    <#
+    .SYNOPSIS
+        Test-Module - Checks if a module is installed and installs it if not.
+    
+    .DESCRIPTION
+        Checks if the specified PowerShell module is installed. If it is not, it prompts the user to install it.
+    
+    .PARAMETER ModuleName
+        The name of the PowerShell module to check for.
+    
+    .EXAMPLE
+        Test-Module -ModuleName "YamlDotNet"
+    #>
+        [CmdletBinding()]
+        param (
+            [string]$ModuleName
+        )
+        if (-not (Get-Module -ListAvailable -Name $ModuleName)) {
+            Write-Host "$ModuleName module not found." -ForegroundColor Yellow
+            if (Read-Prompt -Message "Do you want to install $ModuleName module?") {
+                try {
+                    Install-Module -Name $ModuleName -Scope CurrentUser -Force
+                }
+                catch {
+                    throw "Test-Module: Failed to install $ModuleName module: $_"
+                    exit
+                }
             }
         }
+        Import-Module $ModuleName -Force
     }
-    Import-Module $ModuleName -Force
-}
+#endregion
 
 function Update-PowerShell {
 <#

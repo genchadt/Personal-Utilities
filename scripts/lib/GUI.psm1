@@ -1,4 +1,17 @@
 function Show-PackageSelectionWindow {
+<#
+.SYNOPSIS
+    Show-PackageSelectionWindow - Shows the package selection GUI.
+
+.DESCRIPTION
+    Shows the package GUI. Contains the UI elements and logic for the package selection GUI.
+
+.PARAMETER packages
+    An array of packages to be displayed in the GUI.
+
+.OUTPUTS
+    System.Array
+#>
     param (
         [array]$packages
     )

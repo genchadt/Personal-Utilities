@@ -1,3 +1,7 @@
+param (
+    [switch]$Simple
+)
+
 function Get-QuickFirewallRules {
 <#
 .SYNOPSIS
@@ -8,23 +12,27 @@ function Get-QuickFirewallRules {
     Criteria: rule begins with "Block Folder: <FolderName>"
     If rule's name is edited elsewhere, they may not be detected.
 
-.NOTES
-    Use -Verbose to get more information about each rule.
+.PARAMETER Simple
+    Lists only the name, direction, and action of the firewall rules.
 #>
     [CmdletBinding()]
-    param ()
+    param (
+        [Alias("s")]
+        [Parameter(Position = 0)]
+        [switch]$Simple = $false
+    )
 
     function Format-FirewallRule {
         param ($Rule)
-        if ($Verbose) {
+        if (-not $Simple) { # Detailed output by default
             [PSCustomObject]@{
-                Name      = $Rule.DisplayName   # Name of the rule
-                Direction = $Rule.Direction     # Direction of the rule
-                Action    = $Rule.Action        # Action of the rule
-                Enabled   = $Rule.Enabled       # Enabled status of the rule
-                Program   = $Rule.Program       # Program associated with the rule
+                Name      = $Rule.DisplayName
+                Direction = $Rule.Direction
+                Action    = $Rule.Action
+                Enabled   = $Rule.Enabled
+                Program   = $Rule.Program
             }
-        } else {
+        } else { # Simplified output with -Simple
             Write-Output "$($Rule.DisplayName): $($Rule.Direction) - $($Rule.Action)"
         }
     }
@@ -32,14 +40,17 @@ function Get-QuickFirewallRules {
     try {
         $rules = Get-NetFirewallRule | Where-Object { $_.DisplayName -like "Block Folder: *" }
         if ($rules) {
+            Write-Debug "Found $($rules.Count) Quick Firewall Rules."
             foreach ($rule in $rules) {
                 Format-FirewallRule $rule 
             }
         } else {
             Write-Warning "No Quick Firewall Rules found."
+            return
         }
     } catch {
         Write-Error "An error occurred while retrieving firewall rules: $_"
+        return
     }
 }
 

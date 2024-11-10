@@ -86,7 +86,7 @@ function Compress-File {
    try {
       Write-Host "Compressing: $($File.FullName)" -ForegroundColor Cyan
       Write-Verbose "FFmpeg command: ffmpeg $FFmpegArgs"
-      Start-Process ffmpeg @FFmpegArgs
+      & ffmpeg @FFmpegArgs
 
       if ($LASTEXITCODE -eq 0) {
          Write-Host "Compression successful: $OutputPath" -ForegroundColor Green
@@ -122,6 +122,7 @@ function Summarization {
 }
 #endregion
 
+#region Main
 function Compress-Video {
 <#
 .SYNOPSIS
@@ -231,6 +232,7 @@ function Compress-Video {
    $video_files = Get-VideoFiles -InputPath $InputFilePath -Extensions $Extensions
 
    foreach ($file in $video_files) {
+      Write-Debug "Operating on File: $file"
       if ($file.Name -like "*_compressed*" -and -not $Recompress -and -not $Force) {
          Write-Host "Skipping: $($file.Name) (already compressed)" -ForegroundColor Yellow
          continue
@@ -241,5 +243,6 @@ function Compress-Video {
       Compress-File -File $file -OutputPath $output_path -FFmpegArgs $FFmpegArgs -DeleteSource:$DeleteSource
    }
 }
+#endregion
 
 Compress-Video @PSBoundParameters

@@ -1,3 +1,4 @@
+#region Assertions
 function Assert-Chocolatey {
 <#
 .SYNOPSIS
@@ -14,10 +15,7 @@ function Assert-Chocolatey {
     [CmdletBinding()]
     param ()
 
-    Write-Verbose "Starting Assert-Chocolatey function."
-
     if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-        Write-Verbose "Chocolatey not found on the system."
         Write-Host "Chocolatey is not installed. Installing Chocolatey..." -ForegroundColor Yellow
         Write-Debug "Granting elevation permissions."
         Grant-Elevation
@@ -30,15 +28,15 @@ function Assert-Chocolatey {
             Write-Debug "Executing Chocolatey installation script."
             Invoke-Expression $installScript.Content
             Write-Host "Chocolatey has been successfully installed." -ForegroundColor Green
-            Write-Verbose "Chocolatey installation completed successfully."
+            Write-Warning "Please restart your shell and rerun the script to continue."
+            return $false
         } catch {
-            Write-Warning "Failed to install Chocolatey: $_"
-            Write-Debug "Error details: $_"
+            throw "Failed to install Chocolatey: $_"
         }
     }
     else {
         Write-Host "Chocolatey is already installed." -ForegroundColor Green
-        Write-Verbose "Chocolatey is present on the system. No action needed."
+        return $true
     }
 
     Write-Verbose "Completed Assert-Chocolatey function."
@@ -60,10 +58,7 @@ function Assert-Scoop {
     [CmdletBinding()]
     param ()
 
-    Write-Verbose "Starting Assert-Scoop function."
-
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-Verbose "Scoop not found on the system."
         Write-Host "Scoop is not installed. Installing Scoop..." -ForegroundColor Yellow
         Write-Debug "Granting elevation permissions."
         Grant-Elevation
@@ -75,18 +70,15 @@ function Assert-Scoop {
             Write-Debug "Executing Scoop installation script."
             Invoke-Expression $installScript.Content
             Write-Host "Scoop has been successfully installed." -ForegroundColor Green
-            Write-Verbose "Scoop installation completed successfully."
+            return $true
         } catch {
-            Write-Warning "Failed to install Scoop: $_"
-            Write-Debug "Error details: $_"
+            throw "Failed to install Scoop: $_"
         }
     }
     else {
         Write-Host "Scoop is already installed." -ForegroundColor Green
-        Write-Verbose "Scoop is present on the system. No action needed."
+        return $true
     }
-
-    Write-Verbose "Completed Assert-Scoop function."
 }
 
 function Assert-Winget {
@@ -97,10 +89,7 @@ function Assert-Winget {
 .DESCRIPTION
     Checks if Winget is available as a command. If it is not installed, prompts the user to install it.
     Verifies if the current version of Winget is up to date.
-
-.EXAMPLE
-    Assert-Winget -Verbose
-    # Checks for Winget and verifies its installation and version, with verbose output.
+    More or less unneeded now since Winget is now installed by default in Windows 10+
 
 .LINK
     https://github.com/microsoft/winget-cli
@@ -113,22 +102,35 @@ function Assert-Winget {
 
     $wingetPath = (Get-Command winget.exe -ErrorAction SilentlyContinue).Path
     if (-not $wingetPath) {
-        Write-Warning "Winget is not installed."
-        Write-Verbose "Winget executable not found in system PATH."
-        Write-Warning "Please install it from https://github.com/microsoft/winget-cli/releases"
         Write-Debug "Winget installation link provided to the user."
-        return $false
+        throw "Winget is not installed. Please install it from https://github.com/microsoft/winget-cli/releases"
     }
     else {
         Write-Host "Winget is installed at $wingetPath." -ForegroundColor Green
         Write-Verbose "Winget executable found at $wingetPath."
-        # Optionally, add logic to check for updates
+
+        $currentVersion = (winget --info | Select-String "Version").ToString().Split(" ")[1]
+        Write-Host "Current version of Winget is $currentVersion."
+
+        $latestVersion = (Invoke-WebRequest -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" | ConvertFrom-Json).name
+        if ($currentVersion -ne $latestVersion) {
+            Write-Host "A newer version of Winget is available: $latestVersion"
+            if (Read-Prompt -Message "Do you want to update Winget?" -Default "Y") {
+                winget install winget --source msstore
+            }
+        }
+        else {
+            Write-Host "Winget is up to date." -ForegroundColor Green
+        }
+
         return $true
     }
 
     Write-Verbose "Completed Assert-Winget function."
 }
+#endregion
 
+#region Installers
 function Install-ScoopPackages {
 <#
 .SYNOPSIS
@@ -172,16 +174,13 @@ function Install-ScoopPackages {
 
     if ($ScoopBuckets) {
         foreach ($bucket in $ScoopBuckets) {
-            Write-Verbose "Adding Scoop bucket: $bucket"
             Write-Host "Adding Scoop bucket: $bucket" -ForegroundColor Yellow
             try {
-                Write-Debug "Executing 'scoop bucket add $bucket'."
                 scoop bucket add $bucket
                 Write-Host "Successfully added Scoop bucket: $bucket" -ForegroundColor Green
                 Write-Verbose "Successfully added Scoop bucket: $bucket."
             } catch {
-                Write-Warning "Failed to add Scoop bucket '$bucket': $_"
-                Write-Debug "Error details while adding bucket '$bucket': $_"
+                throw "Failed to add Scoop bucket: $($bucket): $_"
             }
         }
     }
@@ -213,8 +212,7 @@ function Install-ScoopPackages {
             Write-Host "Successfully installed (Scoop): $appId" -ForegroundColor Green
             Write-Verbose "Successfully installed Scoop application: $appId."
         } catch {
-            Write-Warning "Failed to install (Scoop) '$appId': $_"
-            Write-Debug "Error details while installing '$appId': $_"
+            throw "Failed to install (Scoop): $($appId): $_"
         }
     }
 
@@ -275,13 +273,13 @@ function Install-WingetPackages {
             Write-Host "Successfully installed (Winget): $appId" -ForegroundColor Green
             Write-Verbose "Successfully installed Winget application: $appId."
         } catch {
-            Write-Warning "Failed to install (Winget) '$appId': $_"
-            Write-Debug "Error details while installing '$appId': $_"
+            throw "Failed to install (Winget): $($appId): $_"
         }
     }
 
     Write-Verbose "Completed Install-WingetPackages function."
 }
+
 
 function Install-ChocolateyPackages {
 <#
@@ -344,6 +342,41 @@ function Install-ChocolateyPackages {
 
     Write-Verbose "Completed Install-ChocolateyPackages function."
 }
+#endregion
+
+#region YAML Loader
+function Import-YamlPackageConfig {
+    <#
+    .SYNOPSIS
+        Loads YAML package configuration.
+    
+    .DESCRIPTION
+        Parses the YAML configuration file and returns the package configuration.
+    
+    .PARAMETER ConfigurationFilePath
+        The path to the YAML configuration file.
+    #>
+        [CmdletBinding()]
+        param (
+            [Parameter(Position = 0)]
+            [string]$ConfigurationFilePath
+        )
+    
+        if (-not (Test-Path $ConfigurationFilePath)) {
+            Write-Error "Install-Packages: Configuration file '$ConfigurationFilePath' does not exist."
+            return $null
+        }
+    
+        try {
+            $yamlContent = Get-Content -Path $ConfigurationFilePath -Raw
+            $packageConfig = ConvertFrom-Yaml -Yaml $yamlContent
+            return $packageConfig
+        } catch {
+            Write-Error "Install-Packages: Error parsing YAML file: $_"
+            return $null
+        }
+}
+#endregion
 
 Export-ModuleMember -Function `
     Assert-Chocolatey, `

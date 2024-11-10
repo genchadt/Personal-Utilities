@@ -1,35 +1,164 @@
-function Set-FileAttribute {
+param (
+    [string]$Path,
+    [switch]$Hidden,
+    [switch]$System,
+    [switch]$Add,
+    [switch]$Remove,
+    [switch]$Recurse,
+    [switch]$Force
+)
+
+#region Helpers
+function AddAttribute {
 <#
 .SYNOPSIS
-    Set-FileAttribute - Sets file attributes.
+    AddAttribute - Adds a specified attribute to the file or directory.
 
 .DESCRIPTION
-    This function sets file attributes on specified paths.
-    Use it to add/remove hidden and system attributes.
+    This function adds a specified attribute to the file or directory.
 
-.PARAMETER Path
-    The path to the file or directory.
+.PARAMETER Attributes
+    The attributes of the file or directory.
 
-.PARAMETER Hidden
-    Adds the hidden attribute to the file or directory.
+.PARAMETER AttributeToAdd
+    The attribute to add.
 
-.PARAMETER System
-    Adds the system attribute to the file or directory.
+.INPUTS
+    System.IO.FileAttributes
 
-.PARAMETER Recurse
-    Recursively sets attributes on subdirectories.
-
-.PARAMETER Force
-    Overwrites existing files without prompting.
+.OUTPUTS
+    System.IO.FileAttributes
 
 .EXAMPLE
-    Set-FileAttribute -Path "C:\Users\username\Documents" -Hidden -Recurse -Force
+    $attributes = AddAttribute -Attributes $attributes -AttributeToAdd ([System.IO.FileAttributes]::Hidden)
 #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [System.IO.FileAttributes]$Attributes,
+        [System.IO.FileAttributes]$AttributeToAdd
+    )
+
+    if (-not $Attributes.HasFlag($AttributeToAdd)) {
+        Write-Verbose "Adding attribute: $AttributeToAdd"
+        return $Attributes -bor $AttributeToAdd
+    } else {
+        Write-Verbose "Attribute already present: $AttributeToAdd"
+        return $Attributes
+    }
+}
+
+function RemoveAttribute {
+<#
+.SYNOPSIS
+    RemoveAttribute - Removes a specified attribute from the file or directory.
+
+.DESCRIPTION
+    This function removes a specified attribute from the file or directory.
+
+.PARAMETER Attributes
+    The attributes of the file or directory.
+
+.PARAMETER AttributeToRemove
+    The attribute to remove.
+
+.INPUTS
+    System.IO.FileAttributes
+
+.OUTPUTS
+    System.IO.FileAttributes
+
+.EXAMPLE
+    $attributes = RemoveAttribute -Attributes $attributes -AttributeToRemove ([System.IO.FileAttributes]::Hidden)
+#>
+    param (
+        [System.IO.FileAttributes]$Attributes,
+        [System.IO.FileAttributes]$AttributeToRemove
+    )
+
+    if ($Attributes.HasFlag($AttributeToRemove)) {
+        Write-Verbose "Removing attribute: $AttributeToRemove"
+        return $Attributes -band (-bnot $AttributeToRemove)
+    } else {
+        Write-Verbose "Attribute not present: $AttributeToRemove"
+        return $Attributes
+    }
+}
+
+function ToggleAttribute {
+<#
+.SYNOPSIS
+    ToggleAttribute - Toggles a specified attribute on the file or directory.
+
+.DESCRIPTION
+    This function toggles a specified attribute on the file or directory.
+    Binary toggle, so if the attribute is present, it will be removed, and vice versa.
+
+.PARAMETER Attributes
+    The attributes of the file or directory.
+
+.PARAMETER AttributeToToggle
+    The attribute to toggle.
+
+.INPUTS
+    System.IO.FileAttributes
+
+.OUTPUTS
+    System.IO.FileAttributes
+
+.EXAMPLE
+    $attributes = ToggleAttribute -Attributes $attributes -AttributeToToggle ([System.IO.FileAttributes]::Hidden)
+#>
+    param (
+        [System.IO.FileAttributes]$Attributes,
+        [System.IO.FileAttributes]$AttributeToToggle
+    )
+
+    if ($Attributes.HasFlag($AttributeToToggle)) {
+        return $Attributes -band (-bnot $AttributeToToggle)
+    } else {
+        return $Attributes -bor $AttributeToToggle
+    }
+}
+#endregion
+
+#region Main
+function Set-FileAttribute {
+    <#
+    .SYNOPSIS
+        Set-FileAttribute - Sets file attributes.
+    
+    .DESCRIPTION
+        This function sets file attributes on specified paths.
+        Use it to toggle, add, or remove hidden and system attributes.
+    
+    .PARAMETER Path
+        The path to the file or directory.
+    
+    .PARAMETER Hidden
+        Toggles the hidden attribute on the file or directory.
+    
+    .PARAMETER System
+        Toggles the system attribute on the file or directory.
+    
+    .PARAMETER Add
+        Adds the specified attributes to the file or directory.
+    
+    .PARAMETER Remove
+        Removes the specified attributes from the file or directory.
+    
+    .PARAMETER Recurse
+        Recursively sets attributes on subdirectories and files.
+    
+    .PARAMETER Force
+        Overwrites existing files without prompting.
+    
+    .EXAMPLE
+        Set-FileAttribute -Path "C:\Users\username\Documents" -Hidden -Recurse -Force
+    #>
+    [CmdletBinding()]
     param (
         [Alias("p")]
         [Parameter(Position = 0)]
-        [String[]]$Path = $PWD,
+        [String]$Path = (Get-Location).Path,
 
         [Alias("h")]
         [Switch]$Hidden,
@@ -37,70 +166,63 @@ function Set-FileAttribute {
         [Alias("s")]
         [Switch]$System,
 
+        [Alias("a")]
+        [Switch]$Add,
+
         [Alias("r")]
+        [Switch]$Remove,
+
+        [Alias("rec")]
         [Switch]$Recurse,
 
         [Alias("f")]
         [Switch]$Force
     )
 
-    process {
-        # Determine paths to process
-        $processPaths = $Force ? @($PWD) : $Path
-        foreach ($itemPath in $processPaths) {
-            try {
-                if (-not (Test-Path $itemPath)) {
-                    throw "Path '$itemPath' does not exist."
-                }
+    # Determine paths to process
+    $processPaths = $Force ? @($PWD) : $Path
 
-                # Handle directories and files with recursion if specified
-                $itemsToProcess = if ((Get-Item $itemPath -Force) -is [System.IO.DirectoryInfo] -and $Recurse) {
-                    Get-ChildItem -Path $itemPath -Recurse -Force
-                } else {
-                    @((Get-Item $itemPath -Force))
-                }
+    foreach ($itemPath in $processPaths) {
+        if (-not (Test-Path $itemPath)) {
+            Write-Error "Path '$itemPath' does not exist."
+            continue
+        }
 
-                foreach ($item in $itemsToProcess) {
-                    if ($PSCmdlet.ShouldProcess($item.FullName, "Set File Attributes")) {
-                        # Retrieve current attributes
-                        $currentAttributes = $item.Attributes
+        # Handle directories and files with recursion if specified
+        $itemsToProcess = if ((Get-Item $itemPath -Force) -is [System.IO.DirectoryInfo] -and $Recurse) {
+            Get-ChildItem -Path $itemPath -Recurse -Force
+        } else {
+            @((Get-Item $itemPath -Force))
+        }
 
-                        # Modify System attribute based on the presence of -System
-                        if ($System) {
-                            if ($currentAttributes.HasFlag([System.IO.FileAttributes]::System)) {
-                                $item.Attributes = $currentAttributes -band (-bnot [System.IO.FileAttributes]::System)
-                                Write-Verbose "Removed 'System' attribute from '$($item.FullName)'."
-                            } else {
-                                $item.Attributes = $currentAttributes -bor [System.IO.FileAttributes]::System
-                                Write-Verbose "Set 'System' attribute on '$($item.FullName)'."
-                            }
-                        }
+        try {
+            foreach ($item in $itemsToProcess) {
+                $currentAttributes = $item.Attributes
+                Write-Verbose "Current attributes for '$($item.FullName)': $currentAttributes"
 
-                        # Set or remove Hidden attribute based on -Hidden switch
-                        if ($Hidden) {
-                            $item.Attributes = $item.Attributes -bor [System.IO.FileAttributes]::Hidden
-                            Write-Verbose "Set 'Hidden' attribute on '$($item.FullName)'."
-                        } else {
-                            $item.Attributes = $item.Attributes -band (-bnot [System.IO.FileAttributes]::Hidden)
-                            Write-Verbose "Removed 'Hidden' attribute from '$($item.FullName)'."
-                        }
+                $attributesToProcess = @()
+                if ($Hidden) { $attributesToProcess += [System.IO.FileAttributes]::Hidden }
+                if ($System) { $attributesToProcess += [System.IO.FileAttributes]::System }
+
+                foreach ($attribute in $attributesToProcess) {
+                    if ($Add) {
+                        $item.Attributes = AddAttribute -Attributes $item.Attributes -AttributeToAdd $attribute
+                        Write-Verbose "Added '$attribute' attribute to '$($item.FullName)'."
+                    } elseif ($Remove) {
+                        $item.Attributes = RemoveAttribute -Attributes $item.Attributes -AttributeToRemove $attribute
+                        Write-Verbose "Removed '$attribute' attribute from '$($item.FullName)'."
+                    } else {
+                        $item.Attributes = ToggleAttribute -Attributes $item.Attributes -AttributeToToggle $attribute
+                        Write-Verbose "Toggled '$attribute' attribute on '$($item.FullName)'."
                     }
                 }
-            } catch {
-                Write-Error $_.Exception.Message
+                
             }
+        } catch {
+            Write-Error "Failed to set attributes on '$itemPath': $_" -ErrorAction Continue
         }
     }
 }
+#endregion
 
-$params = @{
-    Path    = $Path
-    Hidden  = $Hidden
-    System  = $System
-    Recurse = $Recurse
-    Force   = $Force
-    Debug   = $Debug
-    Verbose = $Verbose
-
-}
-Set-FileAttribute @params
+Set-FileAttribute @PSBoundParameters

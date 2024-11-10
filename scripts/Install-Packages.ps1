@@ -7,69 +7,12 @@ Import-Module "$PSScriptRoot\lib\gui.psm1"
 Import-Module "$PSScriptRoot\lib\helpers.psm1"
 Import-Module "$PSScriptRoot\lib\packages.psm1"
 
-<#
-.SYNOPSIS
-    Assert-Winget - Checks if winget is installed and up to date.
-
-.DESCRIPTION
-    Checks if Winget is available as a command. If it is not installed, this function prompts the user to install it.
-#>
-function Assert-Winget {
-    [CmdletBinding()]
-    param ()
-
-    $wingetPath = (Get-Command winget.exe -ErrorAction SilentlyContinue).Path
-    if (-not $wingetPath) {
-        Write-Warning "winget is not installed."
-        Write-Warning "Please install it from https://github.com/microsoft/winget-cli/releases"
-        return $false
-    }
-
-    Write-Verbose "winget is installed and up to date."
-    return $true
-}
-
-# Configuration Loading Function
-
-<#
-.SYNOPSIS
-    Loads YAML package configuration.
-
-.DESCRIPTION
-    Parses the YAML configuration file and returns the package configuration.
-
-.PARAMETER ConfigurationFilePath
-    The path to the YAML configuration file.
-#>
-function Import-YamlPackageConfig {
-    [CmdletBinding()]
-    param (
-        [Parameter(Position = 0)]
-        [string]$ConfigurationFilePath
-    )
-
-    if (-not (Test-Path $ConfigurationFilePath)) {
-        Write-Error "Install-Packages: Configuration file '$ConfigurationFilePath' does not exist."
-        return $null
-    }
-
-    try {
-        $yamlContent = Get-Content -Path $ConfigurationFilePath -Raw
-        $packageConfig = ConvertFrom-Yaml -Yaml $yamlContent
-        return $packageConfig
-    } catch {
-        Write-Error "Install-Packages: Error parsing YAML file: $_"
-        return $null
-    }
-}
-
-# Package Installation Function
-
+#region Combine Installations
+function Start-PackageInstallation {
 <#
 .SYNOPSIS
     Installs the selected packages.
 #>
-function Start-PackageInstallation {
     [CmdletBinding()]
     param (
         [array]$Packages,
@@ -124,12 +67,14 @@ function Start-PackageInstallation {
 
     Write-Host "All package installations are complete." -ForegroundColor Green
 }
+#endregion
 
+#region Main
+function Install-Packages {
 <#
 .SYNOPSIS
     Install-Packages - Launches the package installer GUI and installs selected packages.
 #>
-function Install-Packages {
     [CmdletBinding()]
     param (
         [Parameter(Position=0)]
@@ -170,5 +115,6 @@ function Install-Packages {
     Start-PackageInstallation -packages $selectedPackages -Force:$Force
     Write-Host "Package installation complete." -ForegroundColor Green
 }
+#endregion
 
 Install-Packages @PSBoundParameters
