@@ -1,7 +1,3 @@
-param (
-    [switch]$Detailed
-)
-
 function Get-QuickFirewallRules {
 <#
 .SYNOPSIS
@@ -12,39 +8,38 @@ function Get-QuickFirewallRules {
     Criteria: rule begins with "Block Folder: <FolderName>"
     If rule's name is edited elsewhere, they may not be detected.
 
-.PARAMETER Detailed
-    Show the rule's properties.
+.NOTES
+    Use -Verbose to get more information about each rule.
 #>
     [CmdletBinding()]
-    param (
-        [Alias("detailed")]
-        [switch]$Detailed
-    )
+    param ()
 
-    begin {
-        function Format-FirewallRule {
-            param ($Rule)
-            if ($Detailed) {
-                [PSCustomObject]@{
-                    Name = $Rule.DisplayName
-                    Direction = $Rule.Direction
-                    Action = $Rule.Action
-                    Enabled = $Rule.Enabled
-                    Program = $Rule.Program
-                }
-            } else {
-                Write-Host "$($Rule.DisplayName): $($Rule.Direction) - $($Rule.Action)"
+    function Format-FirewallRule {
+        param ($Rule)
+        if ($Verbose) {
+            [PSCustomObject]@{
+                Name      = $Rule.DisplayName   # Name of the rule
+                Direction = $Rule.Direction     # Direction of the rule
+                Action    = $Rule.Action        # Action of the rule
+                Enabled   = $Rule.Enabled       # Enabled status of the rule
+                Program   = $Rule.Program       # Program associated with the rule
             }
+        } else {
+            Write-Output "$($Rule.DisplayName): $($Rule.Direction) - $($Rule.Action)"
         }
     }
 
-    process {
+    try {
         $rules = Get-NetFirewallRule | Where-Object { $_.DisplayName -like "Block Folder: *" }
         if ($rules) {
-            $rules | ForEach-Object { Format-FirewallRule $_ }
+            foreach ($rule in $rules) {
+                Format-FirewallRule $rule 
+            }
         } else {
-            Write-Host "No Quick Firewall Rules found." -ForegroundColor Yellow
+            Write-Warning "No Quick Firewall Rules found."
         }
+    } catch {
+        Write-Error "An error occurred while retrieving firewall rules: $_"
     }
 }
 
