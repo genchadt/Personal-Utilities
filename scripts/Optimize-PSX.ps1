@@ -6,7 +6,7 @@ param (
     [switch]$DeleteImage
 )
 
-#region Helper Functions
+#region Helpers
 function Write-Separator {
     [CmdletBinding()]
     param (
@@ -19,7 +19,7 @@ function Write-Separator {
 }
 #endregion
 
-#region File Functions
+#region File Operations
 function Compress-Images {
     param (
         [string]$Path
@@ -246,7 +246,7 @@ function Remove-DeletionCandidates {
 }
 #endregion
 
-#region Summary
+#region Summarization
 function Summarize {
     param (
         [int64]$InitialSize,

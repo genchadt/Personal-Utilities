@@ -8,6 +8,120 @@ param(
    [array]$FFmpegArgs
 )
 
+#region Helpers
+function Get-VideoFiles {
+<#
+.SYNOPSIS
+   Get-VideoFiles - Returns an array of video files based on input path and extensions.
+
+.DESCRIPTION
+   Returns an array of video files based on input path and extensions.
+   If input path is a directory, returns all supported video files within.
+   If input path is a file, returns a single video file.
+
+.PARAMETER InputPath
+   Path to video file or directory to process.
+   If directory, processes all supported video files within.
+   If not specified, processes current directory.
+
+.PARAMETER Extensions
+   Array of video file extensions to process.
+
+.OUTPUTS
+   System.IO.FileInfo[] - Array of matching video files
+#>
+   [CmdletBinding()]
+   param(
+      [string]$InputPath,
+      [array]$Extensions
+   )
+
+   # Validate input path so we know if it's a file or directory or invalid in order to operate on it
+   if (-not (Test-Path $InputPath)) {
+      Write-Error "The provided input path does not exist: $InputPath"
+      return @()
+   }
+
+   if (Test-Path $InputPath -PathType Container) {       # If input path is a directory: return all supported video files
+      return Get-ChildItem -Force -Path $InputPath -File | 
+            Where-Object { $Extensions -contains $_.Extension.ToLower() }
+   } elseif (Test-Path $InputPath -PathType Leaf) {      # Else, if input path is a file: return a single video file
+      return @(Get-Item -Force $InputPath)
+   } else {                                               # Else, input path is invalid: return empty array
+      Write-Error "The provided input path is not valid: $InputPath"
+      return @()
+   }
+}
+
+function New-OutputPath {
+   [CmdletBinding()]
+   param(
+      [System.IO.FileInfo]$File,
+      [string]$OutputFilePath,
+      [bool]$IsSingleFile
+   )
+
+   # If output path is not specified, add "_compressed.mp4" to original filename
+   if ($IsSingleFile -and $OutputFilePath) {
+      return $OutputFilePath
+   } else {
+      return Join-Path (Split-Path $File.FullName) "$([System.IO.Path]::GetFileNameWithoutExtension($File.FullName))_compressed.mp4"
+   }
+}
+#endregion
+
+#region File Operations
+function Compress-File {
+   [CmdletBinding()]
+   param(
+      [System.IO.FileInfo]$File,
+      [string]$OutputPath,
+      [array]$FFmpegArgs,
+      [switch]$DeleteSource
+   )
+
+   $FFmpegArgs[1] = $File.FullName
+   $FFmpegArgs[-1] = $OutputPath
+
+   try {
+      Write-Host "Compressing: $($File.FullName)" -ForegroundColor Cyan
+      Write-Verbose "FFmpeg command: ffmpeg $FFmpegArgs"
+      Start-Process ffmpeg @FFmpegArgs
+
+      if ($LASTEXITCODE -eq 0) {
+         Write-Host "Compression successful: $OutputPath" -ForegroundColor Green
+         Summarization -File $File -OutputPath $OutputPath
+
+         if ($DeleteSource) {
+            Remove-Item -Path $File.FullName -Force
+            Write-Host "Deleted source file: $($File.FullName)" -ForegroundColor Yellow
+         }
+      } else {
+         Write-Error "FFmpeg failed with exit code: $LASTEXITCODE"
+         return
+      }
+   } catch {
+      Write-Error "Compression failed: $($_.Exception.Message)"
+      return
+   }
+}
+#endregion
+
+#region Summarization
+function Summarization {
+   [CmdletBinding()]
+   param(
+      [System.IO.FileInfo]$File,
+      [string]$OutputPath
+   )
+
+   $originalSize = $File.Length
+   $compressedSize = (Get-Item $OutputPath).Length
+   $savings = [math]::Round(($originalSize - $compressedSize) / $originalSize * 100, 2)
+   Write-Host "Size reduction: $savings% (From $([math]::Round($originalSize/1MB, 2))MB to $([math]::Round($compressedSize/1MB, 2))MB)" -ForegroundColor Green
+}
+#endregion
+
 function Compress-Video {
 <#
 .SYNOPSIS
@@ -126,114 +240,6 @@ function Compress-Video {
 
       Compress-File -File $file -OutputPath $output_path -FFmpegArgs $FFmpegArgs -DeleteSource:$DeleteSource
    }
-}
-
-function Get-VideoFiles {
-<#
-.SYNOPSIS
-   Get-VideoFiles - Returns an array of video files based on input path and extensions.
-
-.DESCRIPTION
-   Returns an array of video files based on input path and extensions.
-   If input path is a directory, returns all supported video files within.
-   If input path is a file, returns a single video file.
-
-.PARAMETER InputPath
-   Path to video file or directory to process.
-   If directory, processes all supported video files within.
-   If not specified, processes current directory.
-
-.PARAMETER Extensions
-   Array of video file extensions to process.
-
-.OUTPUTS
-   System.IO.FileInfo[] - Array of matching video files
-#>
-   [CmdletBinding()]
-   param(
-      [string]$InputPath,
-      [array]$Extensions
-   )
-
-   # Validate input path so we know if it's a file or directory or invalid in order to operate on it
-   if (-not (Test-Path $InputPath)) {
-      Write-Error "The provided input path does not exist: $InputPath"
-      return @()
-   }
-
-   if (Test-Path $InputPath -PathType Container) {       # If input path is a directory: return all supported video files
-      return Get-ChildItem -Force -Path $InputPath -File | 
-            Where-Object { $Extensions -contains $_.Extension.ToLower() }
-   } elseif (Test-Path $InputPath -PathType Leaf) {      # Else, if input path is a file: return a single video file
-      return @(Get-Item -Force $InputPath)
-   } else {                                               # Else, input path is invalid: return empty array
-      Write-Error "The provided input path is not valid: $InputPath"
-      return @()
-   }
-}
-
-function New-OutputPath {
-   [CmdletBinding()]
-   param(
-      [System.IO.FileInfo]$File,
-      [string]$OutputFilePath,
-      [bool]$IsSingleFile
-   )
-
-   # If output path is not specified, add "_compressed.mp4" to original filename
-   if ($IsSingleFile -and $OutputFilePath) {
-      return $OutputFilePath
-   } else {
-      return Join-Path (Split-Path $File.FullName) "$([System.IO.Path]::GetFileNameWithoutExtension($File.FullName))_compressed.mp4"
-   }
-}
-
-function Compress-File {
-   [CmdletBinding()]
-   param(
-      [System.IO.FileInfo]$File,
-      [string]$OutputPath,
-      [array]$FFmpegArgs,
-      [switch]$DeleteSource
-   )
-
-   $FFmpegArgs[1] = $File.FullName
-   $FFmpegArgs[-1] = $OutputPath
-
-   try {
-      Write-Host "Compressing: $($File.FullName)" -ForegroundColor Cyan
-      Write-Verbose "FFmpeg command: ffmpeg $FFmpegArgs"
-      & ffmpeg @FFmpegArgs
-
-      if ($LASTEXITCODE -eq 0) {
-         Write-Host "Compression successful: $OutputPath" -ForegroundColor Green
-         LogCompressionResults -File $File -OutputPath $OutputPath
-
-         if ($DeleteSource) {
-            Remove-Item -Path $File.FullName -Force
-            Write-Host "Deleted source file: $($File.FullName)" -ForegroundColor Yellow
-         }
-      } else {
-         Write-Error "FFmpeg failed with exit code: $LASTEXITCODE"
-         return
-      }
-   } catch {
-      Write-Error "Compression failed: $($_.Exception.Message)"
-      return
-   }
-}
-
-function LogCompressionResults {
-   [CmdletBinding()]
-   param(
-      [System.IO.FileInfo]$File,
-      [string]$OutputPath
-   )
-
-   $originalSize = $File.Length
-   $compressedSize = (Get-Item $OutputPath).Length
-   $savings = [math]::Round(($originalSize - $compressedSize) / $originalSize * 100, 2)
-   Write-Host "Size reduction: $savings% (From $([math]::Round($originalSize/1MB, 2))MB to $([math]::Round($compressedSize/1MB, 2))MB)" -ForegroundColor Green
 }
 
 Compress-Video @PSBoundParameters
