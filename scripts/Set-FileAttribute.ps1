@@ -1,25 +1,47 @@
 function Set-FileAttribute {
+<#
+.SYNOPSIS
+    Set-FileAttribute - Sets file attributes.
+
+.DESCRIPTION
+    This function sets file attributes on specified paths.
+    Use it to add/remove hidden and system attributes.
+
+.PARAMETER Path
+    The path to the file or directory.
+
+.PARAMETER Hidden
+    Adds the hidden attribute to the file or directory.
+
+.PARAMETER System
+    Adds the system attribute to the file or directory.
+
+.PARAMETER Recurse
+    Recursively sets attributes on subdirectories.
+
+.PARAMETER Force
+    Overwrites existing files without prompting.
+
+.EXAMPLE
+    Set-FileAttribute -Path "C:\Users\username\Documents" -Hidden -Recurse -Force
+#>
     [CmdletBinding(SupportsShouldProcess = $true)]
     param (
         [Alias("p")]
-        [Parameter(
-            Position = 0,
-            ValueFromPipeline = $true,
-            ValueFromPipelineByPropertyName = $true
-        )]
+        [Parameter(Position = 0)]
         [String[]]$Path = $PWD,
 
         [Alias("h")]
         [Switch]$Hidden,
 
+        [Alias("s")]
+        [Switch]$System,
+
         [Alias("r")]
         [Switch]$Recurse,
 
         [Alias("f")]
-        [Switch]$Force,
-
-        [Alias("s")]
-        [Switch]$System
+        [Switch]$Force
     )
 
     process {
@@ -74,8 +96,11 @@ function Set-FileAttribute {
 $params = @{
     Path    = $Path
     Hidden  = $Hidden
+    System  = $System
     Recurse = $Recurse
     Force   = $Force
-    System  = $System
+    Debug   = $Debug
+    Verbose = $Verbose
+
 }
 Set-FileAttribute @params

@@ -1,23 +1,38 @@
-###############################################
-# Parameters
-###############################################
-
 param (
+    [Alias("config")]
+    [Parameter(Position = 0)]
     [string]$ConfigurationPath = "$PSScriptRoot/config/github/profiles_github.json",
-    [string]$ProfilesPath = "$PSScriptRoot/profiles",
-    [switch]$Verbose
-)
 
-###############################################
-# Imports
-###############################################
+    [Alias("prof")]
+    [Parameter(Position = 1)]
+    [string]$ProfilesPath = "$PSScriptRoot/profiles"
+)
 
 Import-Module "$PSScriptRoot/lib/Helpers.psm1"
 
-###############################################
-# Functions
-###############################################
 function Get-RepoStatus {
+<#
+.SYNOPSIS
+    Get-RepoStatus - Checks the status of a repository.
+
+.DESCRIPTION
+    This function checks the status of a repository by checking for uncommitted changes, fetching the latest changes from the remote repository, and comparing the local and remote commits.
+
+.PARAMETER Directory
+    The path to the repository directory.
+
+.PARAMETER Branch
+    The name of the branch to check.
+
+.PARAMETER RepoName
+    The name of the repository.
+
+.PARAMETER RepoUrl
+    The URL of the repository.
+
+.OUTPUTS
+    System.Object - A hash table containing the repository name, branch, changes, and directory.
+#>
     [CmdletBinding()]
     param (
         [string]$Directory,
@@ -82,6 +97,22 @@ function Get-RepoStatus {
 }
 
 function Sync-Repository {
+<#
+.SYNOPSIS
+    Sync-Repository - Synchronizes a repository with a branch.
+
+.DESCRIPTION
+    This function synchronizes a repository with a branch by checking for uncommitted changes, fetching the latest changes from the remote repository, and comparing the local and remote commits.
+
+.PARAMETER Directory
+    The path to the repository directory.
+
+.PARAMETER Branch
+    The name of the branch to synchronize.
+
+.PARAMETER Changes
+    The status of the repository.
+#>
     [CmdletBinding()]
     param (
         [string]$Directory,
@@ -140,7 +171,20 @@ function Sync-Repository {
     Pop-Location
 }
 
-function Connect-Repository {
+function Initialize-Repository {
+<#
+.SYNOPSIS
+    Initialize-Repository - Clones a repository.
+
+.DESCRIPTION
+    This function clones a repository from a URL to a directory.
+
+.PARAMETER RepoUrl
+    The URL of the repository to clone.
+
+.PARAMETER Directory
+    The directory to clone the repository into.
+#>
     [CmdletBinding()]
     param (
         [string]$RepoUrl,
@@ -156,7 +200,34 @@ function Connect-Repository {
     }
 }
 
+<#
+.SYNOPSIS
+    Update-GithubProfiles - Syncs local profile repositories with Github.
+
+.DESCRIPTION
+    This function synchronizes local profile repositories with Github using the provided configuration file.
+
+.PARAMETER ConfigurationPath
+    The path to the configuration file containing repository information.
+
+.PARAMETER ProfilesPath
+    The path to the directory containing the GitHub profile cache.
+#>
+
 function Update-GithubProfiles {
+<#
+.SYNOPSIS
+    Update-GithubProfiles - Syncs local profile repositories with Github.
+
+.DESCRIPTION
+    This function synchronizes locally loaded profiles with that of a cached version.
+
+.PARAMETER ConfigurationPath
+    The path to the configuration file containing repository information.
+
+.PARAMETER ProfilesPath
+    The path to the directory containing the GitHub profile cache.
+#>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $false)]
@@ -200,7 +271,7 @@ function Update-GithubProfiles {
         switch ($action.ToUpper()) {
             "A" {
                 foreach ($missingRepo in $missingRepos) {
-                    Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory -Verbose:$VerbosePreference
+                    Initialize-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory -Verbose:$VerbosePreference
                 }
             }
             "S" {
@@ -211,7 +282,7 @@ function Update-GithubProfiles {
                     Write-Host "Repository: $($missingRepo.Name)"
                     $cloneAction = Read-Prompt -Message "Do you want to clone this repository?" -Default "Y"
                     if ($cloneAction) {
-                        Connect-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory -Verbose:$VerbosePreference
+                        Initialize-Repository -RepoUrl $missingRepo.RepoUrl -Directory $missingRepo.Directory -Verbose:$VerbosePreference
                     } else {
                         Write-Host "Skipping $($missingRepo.Name)"
                     }
@@ -298,6 +369,7 @@ function Update-GithubProfiles {
 $params = @{
     ConfigurationPath = $ConfigurationPath
     ProfilesPath      = $ProfilesPath
+    Debug             = $Debug
     Verbose           = $Verbose
 }
 Update-GithubProfiles @params

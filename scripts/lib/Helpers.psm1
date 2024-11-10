@@ -1,8 +1,8 @@
+function Assert-Gsudo {
 <#
 .SYNOPSIS
     Checks if gsudo is installed and installs it if not.
 #>
-function Assert-Gsudo {
     [CmdletBinding()]
     param ()
 
@@ -28,15 +28,14 @@ function Assert-Gsudo {
     }
 }
 
+function Grant-Elevation {
 <#
 .SYNOPSIS
     Grant-Elevation - Checks if gsudo is installed and elevates the script if not.
-#>
-function Grant-Elevation {
+#>    
     [CmdletBinding()]
     param ()
     if (Get-Command "gsudo" -ErrorAction SilentlyContinue) {
-        Write-Verbose "gsudo is installed."
         Write-Verbose "Attempting to elevate using gsudo..."
         try {
             & gsudo -n
@@ -50,6 +49,7 @@ function Grant-Elevation {
     }
 }
 
+function Read-Prompt {
 <#
 .SYNOPSIS
     Read-Prompt - Prompt the user to enter a response.
@@ -58,6 +58,17 @@ function Grant-Elevation {
     Prompts the user to enter a response, and returns a boolean value based on the response. The prompt is
     constructed from the passed message and possible responses. If the user enters nothing, the default response
     is returned. If the user enters an invalid response, a message is printed and the function continues prompting.
+
+.PARAMETER Message
+    The message to display to the user.
+
+.PARAMETER Prompt
+    Possible responses for the user. Valid options are "Y", "N", "A", and "D". The default is "YN".
+    Responses are case-insensitive and must be entered as a string.
+
+.PARAMETER Default
+    The default response to return if the user enters nothing. Valid options are "Y", "N", "A", or "D".
+    The response made default will be capitalized in the prompt to indicate its status.
 
 .EXAMPLE
     $response = Read-Prompt -Message "Are you sure you want to proceed?"
@@ -68,7 +79,7 @@ function Grant-Elevation {
 .EXAMPLE
     $response = Read-Prompt -Message "Are you sure you want to proceed?" -Prompt "YNAD" -Default "N"
 #>
-function Read-Prompt {
+    [CmdletBinding()]
     param (
         [Parameter(Position=0, Mandatory=$true)]
         [string]$Message,
@@ -133,25 +144,55 @@ function Read-Prompt {
         Write-Host "Invalid response. Please enter one of: $promptOptionsString" -ForegroundColor Yellow
     }
 }
-
-# Example usage:
-# $userResponse = Read-Prompt -Message "Are you sure you want to overwrite these files?" -Prompt "YN" -Default "N"
-
+    
+function Get-WindowTitle {
 <#
 .SYNOPSIS
-    Test-Module - Checks if a module is installed and installs it if not.
+    Get-WindowTitle - Get the title of the console window
 
 .DESCRIPTION
-    Checks if the specified PowerShell module is installed. If it is not, it prompts the user to install it.
-#>
+    This function returns the title of the console window.    
+    
+.OUTPUTS
+    System.String - Get-WindowTitle returns the title of the console window  
+#>    
+    [CmdletBinding()]
+    param ()
+
+    $signature = @"
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr GetStdHandle(int nStdHandle);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool GetConsoleTitle(StringBuilder lpConsoleTitle, int nSize);
+"@
+
+    $type = Add-Type -MemberDefinition $signature -Name Win32GetConsoleTitle -Namespace Win32Functions -PassThru
+    $buffer = New-Object System.Text.StringBuilder 256
+    $type::GetConsoleTitle($buffer, $buffer.Capacity) | Out-Null
+    return $buffer.ToString()
+}
 
 function Set-WindowTitle {
+<#
+.SYNOPSIS
+    Set-WindowTitle - Set the title of the console window
+
+.DESCRIPTION
+    This function sets the title of the console window.
+    
+.PARAMETER title
+
+The title to set for the console window.
+
+.EXAMPLE
+    Set-WindowTitle -title "New Title"
+#>
+    [CmdletBinding()]
     param (
-        [Alias("t")]
-        [Parameter(Position=0, Mandatory=$true)]
         [string]$title
     )
     
+    # Use the Windows API to set the console title
     $signature = @"
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool SetConsoleTitle(string lpConsoleTitle);
@@ -161,6 +202,20 @@ function Set-WindowTitle {
 }
 
 function Test-Module {
+<#
+.SYNOPSIS
+    Test-Module - Checks if a module is installed and installs it if not.
+
+.DESCRIPTION
+    Checks if the specified PowerShell module is installed. If it is not, it prompts the user to install it.
+
+.PARAMETER ModuleName
+    The name of the PowerShell module to check for.
+
+.EXAMPLE
+    Test-Module -ModuleName "YamlDotNet"
+#>
+    [CmdletBinding()]
     param (
         [string]$ModuleName
     )
@@ -179,6 +234,7 @@ function Test-Module {
     Import-Module $ModuleName -Force
 }
 
+function Update-PowerShell {
 <#
 .SYNOPSIS
     Update-PowerShell - Checks if PowerShell is up to date and updates it if necessary.
@@ -189,7 +245,9 @@ function Test-Module {
 .LINK
     https://github.com/PowerShell/PowerShell
 #>
-function Update-PowerShell {
+    [CmdletBinding()]
+    param ()
+
     Write-Host "Checking for PowerShell updates..."
     $currentVersion = $PSVersionTable.PSVersion
     try {

@@ -1,6 +1,15 @@
+param(
+    [string]$Path,
+    [string]$Filter,
+    [switch]$Force
+)
+
+Import-Module "$PSScriptRoot\lib\helpers.psm1"
+
+function Install-Fonts {
 <#
     .SYNOPSIS
-        Install-Fonts.ps1 - Installs fonts recursively from the current directory using Windows' built-in tool.
+        Install-Fonts - Installs fonts recursively from the current directory using Windows' built-in tool.
 
     .DESCRIPTION
         !! This script must be run with Administrator privileges. !!
@@ -21,24 +30,15 @@
     .EXAMPLE
         .\Install-Fonts.ps1 -Path "C:\Windows\Fonts" -Filter "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc"
 #>
-[CmdletBinding()]
-param(
-    [Parameter(Position = 0)]
-    [string]$Path = (Get-Location).Path,
-
-    [Parameter(Position = 1)]
-    [string]$Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc",
-
-    [Parameter(Position = 2)]
-    [switch]$Force
-)
-
-Import-Module "$PSScriptRoot\lib\helpers.psm1"
-
-function Install-Fonts {
+    [CmdletBinding()]
     param(
-        [string]$Path,
-        [string]$Filter,
+        [Parameter(Position = 0)]
+        [string]$Path = (Get-Location).Path,
+    
+        [Parameter(Position = 1)]
+        [string]$Filter = "*.ttf,*.otf,*.woff,*.woff2,*.eot,*.fon,*.pfm,*.pfb,*.ttc",
+    
+        [Parameter(Position = 2)]
         [switch]$Force
     )
 
@@ -92,9 +92,4 @@ function Install-Fonts {
     Write-Host "All font installations completed." -ForegroundColor Green
 }
 
-$params = @{
-    Path = $Path
-    Filter = $Filter
-    Force = $Force
-}
-Install-Fonts @params
+Install-Fonts @PSBoundParameters

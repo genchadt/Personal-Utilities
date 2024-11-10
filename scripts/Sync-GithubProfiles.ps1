@@ -1,20 +1,9 @@
 param (
-    [string]$ConfigurationPath = "$PSScriptRoot/config/github/profiles_github.json",
-    [string]$ProfilesPath = "$PSScriptRoot/profiles"
+    [string]$ConfigurationPath,
+    [string]$ProfilesPath
 )
 
 Import-Module "$PSScriptRoot/lib/Helpers.psm1"
-
-<#
-.SYNOPSIS
-    Sync-GithubProfiles - Synchronizes GitHub profiles based on a configuration file.
-
-.PARAMETER ConfigurationPath
-    The path to the configuration file containing repository information.
-
-.PARAMETER ProfilesPath
-    The path to the directory containing the GitHub profiles.
-#>
 
 function Test-FileConflicts {
     [CmdletBinding()]
@@ -113,6 +102,19 @@ function Test-FileConflicts {
 
 # TODO - Handle bizarre file conflict issues
 function Copy-Profile {
+<#
+.SYNOPSIS
+    Copy-Profile - Copies a profile from one location to another.
+
+.DESCRIPTION
+    Copy-Profile - Copies a profile from one location to another.
+
+.PARAMETER SourcePath
+    The path to the source profile directory.
+
+.PARAMETER TargetPath
+    The path to the target profile directory.
+#>
     [CmdletBinding()]
     param (
         [Parameter(Position = 0)]
@@ -173,10 +175,20 @@ function Copy-Profile {
 }
 
 function Sync-GithubProfiles {
+<#
+.SYNOPSIS
+    Sync-GithubProfiles - Synchronizes GitHub profiles based on a configuration file.
+
+.PARAMETER ConfigurationPath
+    The path to the configuration file containing repository information.
+
+.PARAMETER ProfilesPath
+    The path to the directory containing the GitHub profiles.
+#>
     [CmdletBinding()]
     param (
-        [string]$ConfigurationPath,
-        [string]$ProfilesPath
+        [string]$ConfigurationPath = "$PSScriptRoot/config/github/profiles_github.json",
+        [string]$ProfilesPath = "$PSScriptRoot/profiles"
     )
 
     # Validate ConfigurationPath exists as a file
@@ -328,8 +340,4 @@ function Sync-GithubProfiles {
     }
 }
 
-$params = @{
-    ConfigurationPath = $ConfigurationPath
-    ProfilesPath      = $ProfilesPath
-}
-Sync-GithubProfiles @params
+Sync-GithubProfiles @PSBoundParameters

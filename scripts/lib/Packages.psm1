@@ -1,20 +1,16 @@
+function Assert-Chocolatey {
 <#
 .SYNOPSIS
-    Ensures Chocolatey is installed on the system.
+    Assert-Chocolatey - Ensures Chocolatey is installed on the system.
 
 .DESCRIPTION
     Checks if Chocolatey is available as a command. If it is not installed, this function installs Chocolatey using an online script.
     Elevates permissions and sets the necessary execution policy.
 
-.EXAMPLE
-    Assert-Chocolatey -Verbose
-    # Ensures Chocolatey is installed; installs it if missing, with verbose output.
-
 .LINK
     https://github.com/chocolatey/choco
     https://chocolatey.org
 #>
-function Assert-Chocolatey {
     [CmdletBinding()]
     param ()
 
@@ -48,23 +44,19 @@ function Assert-Chocolatey {
     Write-Verbose "Completed Assert-Chocolatey function."
 }
 
+function Assert-Scoop {
 <#
 .SYNOPSIS
-    Ensures Scoop is installed on the system.
+    Assert-Scoop - Ensures Scoop is installed on the system.
 
 .DESCRIPTION
     Checks if Scoop is available as a command. If it is not installed, this function installs Scoop using an online script.
     Elevates permissions and sets the necessary execution policy.
 
-.EXAMPLE
-    Assert-Scoop -Verbose
-    # Ensures Scoop is installed; installs it if missing, with verbose output.
-
 .LINK
     https://github.com/lukesampson/scoop
     https://scoop.sh
 #>
-function Assert-Scoop {
     [CmdletBinding()]
     param ()
 
@@ -97,9 +89,10 @@ function Assert-Scoop {
     Write-Verbose "Completed Assert-Scoop function."
 }
 
+function Assert-Winget {
 <#
 .SYNOPSIS
-    Ensures Winget is installed and up to date.
+    Assert-Winget - Ensures Winget is installed and up to date.
 
 .DESCRIPTION
     Checks if Winget is available as a command. If it is not installed, prompts the user to install it.
@@ -113,7 +106,6 @@ function Assert-Scoop {
     https://github.com/microsoft/winget-cli
     https://apps.microsoft.com/detail/9nblggh4nns1
 #>
-function Assert-Winget {
     [CmdletBinding()]
     param ()
 
@@ -137,9 +129,10 @@ function Assert-Winget {
     Write-Verbose "Completed Assert-Winget function."
 }
 
+function Install-ScoopPackages {
 <#
 .SYNOPSIS
-    Installs packages via Scoop and adds necessary buckets.
+    Install-ScoopPackages - Installs packages via Scoop and adds necessary buckets.
 
 .DESCRIPTION
     Installs specified applications using Scoop and adds any required Scoop buckets.
@@ -162,16 +155,16 @@ function Assert-Winget {
     https://github.com/lukesampson/scoop
     https://scoop.sh
 #>
-function Install-ScoopPackages {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
+        [Alias("apps")]
+        [Parameter(Mandatory=$true)]
         [array]$ScoopApps,
 
-        [Parameter(Mandatory = $false)]
+        [Alias("buckets")]
         [array]$ScoopBuckets,
 
-        [Parameter(Mandatory = $false)]
+        [Alias("f")]
         [switch]$Force
     )
 
@@ -228,9 +221,10 @@ function Install-ScoopPackages {
     Write-Verbose "Completed Install-ScoopPackages function."
 }
 
+function Install-WingetPackages {
 <#
 .SYNOPSIS
-    Installs packages via Winget.
+    Install-WingetPackages - Installs packages via Winget.
 
 .DESCRIPTION
     Installs specified applications using Winget, optionally forcing an update to existing applications.
@@ -248,13 +242,13 @@ function Install-ScoopPackages {
 .LINK
     https://github.com/microsoft/winget-cli
 #>
-function Install-WingetPackages {
     [CmdletBinding()]
     param (
+        [Alias("apps")]
         [Parameter(Mandatory = $true)]
         [array]$WingetApps,
 
-        [Parameter(Mandatory = $false)]
+        [Alias("f")]
         [switch]$Force
     )
 
@@ -289,9 +283,10 @@ function Install-WingetPackages {
     Write-Verbose "Completed Install-WingetPackages function."
 }
 
+function Install-ChocolateyPackages {
 <#
 .SYNOPSIS
-    Installs packages via Chocolatey.
+    Install-ChocolateyPackages - Installs packages via Chocolatey.
 
 .DESCRIPTION
     Installs specified applications using Chocolatey, optionally forcing an update to existing applications.
@@ -309,13 +304,13 @@ function Install-WingetPackages {
 .LINK
     https://chocolatey.org
 #>
-function Install-ChocolateyPackages {
     [CmdletBinding()]
     param (
+        [Alias("apps")]
         [Parameter(Mandatory = $true)]
         [array]$ChocoApps,
 
-        [Parameter(Mandatory = $false)]
+        [Alias("f")]
         [switch]$Force
     )
 

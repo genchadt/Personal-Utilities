@@ -1,21 +1,8 @@
-<#
-.SYNOPSIS
-    Install-Packages.ps1 - Installs selected packages using winget, scoop, and chocolatey.
-
-.DESCRIPTION
-    Reads a list of packages from a YAML configuration file, prompts the user to select the installation type (Limited, Standard, Full, Optional Only), displays a custom GUI for package selection with all relevant items pre-selected, and installs them using winget, scoop, and chocolatey.
-#>
-
-[CmdletBinding()]
 param (
-    [Parameter(Position=0)]
-    [string]$ConfigurationFilePath = "$PSScriptRoot\config\packages\packages.yaml",
-
-    [Alias("f")]
+    [string]$ConfigurationFilePath,
     [switch]$Force
 )
 
-# Load Helpers Modules
 Import-Module "$PSScriptRoot\lib\gui.psm1"
 Import-Module "$PSScriptRoot\lib\helpers.psm1"
 Import-Module "$PSScriptRoot\lib\packages.psm1"
@@ -23,6 +10,9 @@ Import-Module "$PSScriptRoot\lib\packages.psm1"
 <#
 .SYNOPSIS
     Assert-Winget - Checks if winget is installed and up to date.
+
+.DESCRIPTION
+    Checks if Winget is available as a command. If it is not installed, this function prompts the user to install it.
 #>
 function Assert-Winget {
     [CmdletBinding()]
@@ -44,10 +34,17 @@ function Assert-Winget {
 <#
 .SYNOPSIS
     Loads YAML package configuration.
+
+.DESCRIPTION
+    Parses the YAML configuration file and returns the package configuration.
+
+.PARAMETER ConfigurationFilePath
+    The path to the YAML configuration file.
 #>
 function Import-YamlPackageConfig {
     [CmdletBinding()]
     param (
+        [Parameter(Position = 0)]
         [string]$ConfigurationFilePath
     )
 
@@ -75,7 +72,7 @@ function Import-YamlPackageConfig {
 function Start-PackageInstallation {
     [CmdletBinding()]
     param (
-        [array]$packages,
+        [array]$Packages,
         [switch]$Force
     )
 
@@ -84,7 +81,7 @@ function Start-PackageInstallation {
     $scoopBuckets = @()
     $chocoApps = @()
 
-    foreach ($package in $packages) {
+    foreach ($package in $Packages) {
         # Winget apps
         if ($package.managers.winget.available) {
             $wingetApps += $package
@@ -135,7 +132,10 @@ function Start-PackageInstallation {
 function Install-Packages {
     [CmdletBinding()]
     param (
-        [string]$ConfigurationFilePath,
+        [Parameter(Position=0)]
+        [string]$ConfigurationFilePath = "$PSScriptRoot\config\packages\packages.yaml",
+
+        [Alias("f")]
         [switch]$Force
     )
     Write-Debug "Starting Install-Packages..."
@@ -148,7 +148,7 @@ function Install-Packages {
 
     # Attempt to load package configuration from YAML
     try {
-        $packageConfig = Import-YamlPackageConfig -ConfigurationFilePath $ConfigurationFilePath
+        $packageConfig = Import-YamlPackageConfig $ConfigurationFilePath
         if (-not $packageConfig) {
             Write-Error "Install-Packages: Package configuration is empty or invalid. Exiting."
             return
@@ -171,8 +171,4 @@ function Install-Packages {
     Write-Host "Package installation complete." -ForegroundColor Green
 }
 
-$params = @{
-    ConfigurationFilePath   = $ConfigurationFilePath
-    Force                   = $Force
-}
-Install-Packages @params
+Install-Packages @PSBoundParameters
