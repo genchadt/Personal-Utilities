@@ -14,7 +14,7 @@ function Update-Spicetify {
 
     try {
         Write-Verbose "Update-Spicetify: Launching Spicetify installer..."
-        Get-Elevation
+        Grant-Elevation
         Invoke-WebRequest -useb $SpicetifyInstallerPath | Invoke-Expression
         Write-Verbose "Update-Spicetify: Successfully launched Spicetify installer."
     }
