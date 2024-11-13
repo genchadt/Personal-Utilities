@@ -2,7 +2,6 @@
 param(
    [string]$InputFilePath,
    [string]$OutputFilePath,
-   [switch]$Recompress,
    [switch]$DeleteSource,
    [switch]$Force,
    [array]$Extensions,
@@ -10,6 +9,15 @@ param(
 )
 
 #region Helpers
+function Assert-FFmpeg {
+   [CmdletBinding()]
+   param()
+
+   if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+      throw "Assert-FFmpeg: FFmpeg is not installed or not in the system's PATH."
+   }
+}
+
 function Get-VideoFiles {
 <#
 .SYNOPSIS
@@ -33,91 +41,89 @@ function Get-VideoFiles {
 #>
    [CmdletBinding()]
    param(
+      [Parameter(Mandatory)]
       [string]$InputPath,
+
+      [Parameter(Mandatory)]
       [array]$Extensions
    )
 
-   # Validate input path so we know if it's a file or directory or invalid in order to operate on it
-   if (-not (Test-Path $InputPath)) {
-      Write-Error "The provided input path does not exist: $InputPath"
-      return @()
-   }
-
    if (Test-Path $InputPath -PathType Container) {       # If input path is a directory: return all supported video files
       return Get-ChildItem -Force -Path $InputPath -File | 
-            Where-Object { $Extensions -contains $_.Extension.ToLower() }
+               Where-Object { $Extensions -contains $_.Extension.ToLower() }
    } elseif (Test-Path $InputPath -PathType Leaf) {      # Else, if input path is a file: return a single video file
       return @(Get-Item -Force $InputPath)
-   } else {                                               # Else, input path is invalid: return empty array
-      Write-Error "The provided input path is not valid: $InputPath"
-      return @()
+   } else {                                              # Else, input path is invalid. Throw error
+      throw "The provided input path is not valid: $InputPath"
    }
 }
 
 function New-OutputPath {
    [CmdletBinding()]
    param(
+      [Parameter(Mandatory)]
       [System.IO.FileInfo]$File,
-      [string]$OutputFilePath,
-      [bool]$IsSingleFile
-   )
 
+      [string]$OutputFilePath
+   )
    # If output path is not specified, add "_compressed.mp4" to original filename
-   if ($IsSingleFile -and $OutputFilePath) {
-      return $OutputFilePath
-   } else {
+   if (-not $OutputFilePath) {
       return Join-Path (Split-Path $File.FullName) "$([System.IO.Path]::GetFileNameWithoutExtension($File.FullName))_compressed.mp4"
+   } else {
+      return $OutputFilePath
    }
 }
 #endregion
 
 #region File Operations
-function Compress-File {
+function Invoke-FFmpeg {
    [CmdletBinding()]
    param(
+      [Parameter(Mandatory)]
       [System.IO.FileInfo]$File,
+      
+      [Parameter(Mandatory)]
       [string]$OutputPath,
+
+      [Parameter(Mandatory)]
       [array]$FFmpegArgs,
+
       [switch]$DeleteSource
    )
 
    $FFmpegArgs[1] = $File.FullName
    $FFmpegArgs[-1] = $OutputPath
 
-   try {
-      Write-Host "Compressing: $($File.FullName)" -ForegroundColor Cyan
-      Write-Verbose "FFmpeg command: ffmpeg $FFmpegArgs"
-      & ffmpeg @FFmpegArgs
+   Write-Debug "Invoking FFmpeg: $($File.FullName)" -ForegroundColor Cyan
+   Write-Debug "FFmpeg command: ffmpeg $FFmpegArgs"
 
-      if ($LASTEXITCODE -eq 0) {
-         Write-Host "Compression successful: $OutputPath" -ForegroundColor Green
-         Summarization -File $File -OutputPath $OutputPath
+   & ffmpeg @FFmpegArgs
 
-         if ($DeleteSource) {
-            Remove-Item -Path $File.FullName -Force
-            Write-Host "Deleted source file: $($File.FullName)" -ForegroundColor Yellow
-         }
-      } else {
-         Write-Error "FFmpeg failed with exit code: $LASTEXITCODE"
-         return
+   if ($LASTEXITCODE -eq 0) {
+      Write-Debug "Invoke-FFmpeg: Operation completed successfully." -ForegroundColor Green
+      if ($DeleteSource) {
+         Remove-Item $File.FullName -Force
+         Write-Debug "Invoke-FFmpeg: Source file deleted." -ForegroundColor Green
       }
-   } catch {
-      Write-Error "Compression failed: $($_.Exception.Message)"
-      return
+   } else {
+      throw "Invoke-FFmpeg: Operation failed with exit code: $LASTEXITCODE"
    }
 }
 #endregion
 
 #region Summarization
-function Summarization {
+function Measure-Compression {
    [CmdletBinding()]
    param(
-      [System.IO.FileInfo]$File,
-      [string]$OutputPath
+      [Parameter(Mandatory)]
+      [System.IO.FileInfo]$InputFile,
+
+      [Parameter(Mandatory)]
+      [System.IO.FileInfo]$OutputFile
    )
 
-   $originalSize = $File.Length
-   $compressedSize = (Get-Item $OutputPath).Length
+   $originalSize = $InputFile.Length
+   $compressedSize = $OutputFile.Length
    $savings = [math]::Round(($originalSize - $compressedSize) / $originalSize * 100, 2)
    Write-Host "Size reduction: $savings% (From $([math]::Round($originalSize/1MB, 2))MB to $([math]::Round($compressedSize/1MB, 2))MB)" -ForegroundColor Green
 }
@@ -142,10 +148,6 @@ function Compress-Video {
    Optional output path for single file compression.
    Ignored when processing a directory.
    Default adds "_compressed.mp4" to original filename.
-
-.PARAMETER Recompress
-   Allow recompression of files already marked as compressed.
-   By default, prompts before recompressing files with "_compressed" in name.
 
 .PARAMETER DeleteSource
    Delete source file after successful compression.
@@ -192,12 +194,9 @@ function Compress-Video {
       [Parameter(Position = 1)]
       [string]$OutputFilePath = $null,
 
-      [Alias("r")]
-      [switch]$Recompress = $false,
-
       [Alias("del")]
       [switch]$DeleteSource = $false,
-      
+
       [Alias("f")]
       [switch]$Force = $false,
 
@@ -219,31 +218,39 @@ function Compress-Video {
       )
    )
 
-   if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
-      Write-Error "FFmpeg is not installed or not in the system's PATH."
-      return
-   }
+   try {
+      Assert-FFmpeg
 
-   if (-not (Test-Path -Path $InputFilePath)) {
-      Write-Error "Input path does not exist: $InputFilePath"
-      return
-   }
-
-   Write-Debug "InputFilePath: $InputFilePath"
-   $video_files = Get-VideoFiles -InputPath $InputFilePath -Extensions $Extensions
-
-   foreach ($file in $video_files) {
-      Write-Debug "Operating on File: $file"
-      if ($file.Name -like "*_compressed*" -and -not $Recompress -and -not $Force) {
-         Write-Host "Skipping: $($file.Name) (already compressed)" -ForegroundColor Yellow
-         continue
+      if (-not (Test-Path -Path $InputFilePath)) {
+         throw "Input path does not exist: $InputFilePath"
       }
 
-      $output_path = New-OutputPath -File $file -OutputFilePath $OutputFilePath -IsSingleFile ($video_files.Count -eq 1)
+      Write-Debug "InputFilePath: $InputFilePath"
+      $video_files = Get-VideoFiles -InputPath $InputFilePath -Extensions $Extensions
 
-      Compress-File -File $file -OutputPath $output_path -FFmpegArgs $FFmpegArgs -DeleteSource:$DeleteSource
+      if ($video_files.Count -eq 0) {
+         Write-Warning "No video files found in: $InputFilePath."
+         return
+      }
+
+      foreach ($file in $video_files) {
+         Write-Debug "Operating on File: $file"
+
+         if ($file.Name -like "*_compressed*" -and -not $Force) {
+            Write-Host "Skipping: $($file.Name) (already compressed)" -ForegroundColor Yellow
+            continue
+         }
+
+         $output_path = New-OutputPath -File $file -OutputFilePath $OutputFilePath
+         Invoke-FFmpeg -File $file -OutputPath $output_path -FFmpegArgs $FFmpegArgs -DeleteSource:$DeleteSource
+         Measure-Compression -InputFile $file -OutputFile (Get-Item $output_path)
+      }
+   } catch {
+      Write-Error "Compression failed: $($_.Exception.Message)"
+      return
    }
 }
 #endregion
 
 Compress-Video @PSBoundParameters
+

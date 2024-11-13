@@ -1,9 +1,7 @@
+[CmdletBinding()]
 param (
-    [Parameter(Position=0)]
-    [string]$C2RClientPath = "C:\Program Files\Common Files\microsoft shared\ClickToRun\OfficeC2RClient.exe",
-
-    [Parameter(Position=1)]
-    [string]$C2R_args = "/update user"
+    [string]$C2RClientPath,
+    [string]$C2R_args
 )
 
 function Update-M365 {
@@ -26,8 +24,12 @@ function Update-M365 {
 #>
     [CmdletBinding()]
     param (
-        [string]$C2RClientPath,
-        [string]$C2R_args
+        [Parameter(Position = 0)]
+        [ValidateScript({ Test-Path -Path $_ -PathType Leaf })]
+        [string]$C2RClientPath = "C:\Program Files\Common Files\microsoft shared\ClickToRun\OfficeC2RClient.exe",
+
+        [Parameter(Position = 1)]
+        [string]$C2R_args = "/update user"
     )
 
     $C2RClientName = [System.IO.Path]::GetFileName($C2RClientPath)
@@ -45,10 +47,4 @@ function Update-M365 {
     }    
 }
 
-$params = @{
-    C2RClientPath = $C2RClientPath
-    C2R_args      = $C2R_args
-    Debug         = $Debug
-    Verbose       = $Verbose
-}
-Update-M365 @params
+Update-M365 @PSBoundParameters

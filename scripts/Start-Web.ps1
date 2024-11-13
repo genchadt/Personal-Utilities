@@ -36,5 +36,5 @@ function Start-Web {
 
 Start-Web -Entries @(
     "C:\nginx-1.27.2\nginx.exe",
-    "cd S:\Dev\external\big-AGI && npm run build && npm run start"
+    "cd C:\Dev\external\big-AGI && npm run build && npm run start"
 )
