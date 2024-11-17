@@ -44,14 +44,14 @@ function Send-ReforgerInput {
     if ([IntPtr]::Zero -eq $hWnd) { return }
     Write-Debug "Found window: $($hWnd)"
 
-    Write-Debug "Sending ENTER key to window..."
+    Write-Debug "Sending RETURN key to window $($hWnd), process $($targetProcess.Name)..."
     try {
         while ($true) {
             # Low-level keyboard input
             [void][WinAPI]::PostMessage($hWnd, [WinAPI]::WM_KEYDOWN, [IntPtr][WinAPI]::VK_RETURN, [IntPtr]::Zero)
             [void][WinAPI]::PostMessage($hWnd, [WinAPI]::WM_KEYUP, [IntPtr][WinAPI]::VK_RETURN, [IntPtr]::Zero)
             Start-Sleep -Milliseconds 300
-            Write-Debug "ENTER key sent!"
+            Write-Debug "RETURN sent!"
         }
     }
     catch {
