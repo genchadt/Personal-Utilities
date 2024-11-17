@@ -35,29 +35,30 @@ function Send-ReforgerInput {
     }
 '@
 
-    # Get the process and window handle so we can send keys to it
     $imageName = "ArmaReforgerSteam.exe"
     $targetProcess = Get-Process | Where-Object { $_.ProcessName -eq $imageName.Split('.')[0] }
     if ($null -eq $targetProcess) { return }
-    Write-Verbose "Found process: $($targetProcess.Name)"
+
+    Write-Debug "Found process: $($targetProcess.Name)"
     $hWnd = $targetProcess.MainWindowHandle
     if ([IntPtr]::Zero -eq $hWnd) { return }
-    Write-Verbose "Found window: $($hWnd)"
+    Write-Debug "Found window: $($hWnd)"
 
-    Write-Verbose "Sending Enter key to window..."
+    Write-Debug "Sending ENTER key to window..."
     try {
         while ($true) {
             # Low-level keyboard input
             [void][WinAPI]::PostMessage($hWnd, [WinAPI]::WM_KEYDOWN, [IntPtr][WinAPI]::VK_RETURN, [IntPtr]::Zero)
             [void][WinAPI]::PostMessage($hWnd, [WinAPI]::WM_KEYUP, [IntPtr][WinAPI]::VK_RETURN, [IntPtr]::Zero)
             Start-Sleep -Milliseconds 300
+            Write-Debug "ENTER key sent!"
         }
     }
     catch {
         # If the user cancels, exit gracefully
         # I.e. user presses Ctrl + C
         if ($_.Exception.GetType().Name -eq "OperationCanceledException") {
-            Write-Verbose "Operation cancelled."
+            Write-Debug "Operation cancelled."
             return
         }
         else {
