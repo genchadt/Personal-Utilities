@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param (
     [switch]$Force,
-    [switch]$SilentMode,
     [switch]$SkipArchive,
     [switch]$DeleteArchive,
     [switch]$DeleteImage
@@ -26,24 +25,22 @@ function Compress-Images {
         [string]$Path
     )
     
-    if (-not $SilentMode) {
-        Write-Host "Entering Image Mode..." -ForegroundColor Cyan
-        Write-Separator
-    }
+    Write-Host "Converting Images to CHDs..." -ForegroundColor Cyan
+    Write-Separator
 
     $images = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.cue$|\.gdi$|\.iso$' }
+    Write-Debug "Found $($images.Count) image files."
     
     if ($images.Count -eq 0) {
-        if (-not $SilentMode) {
-            Write-Host "Image Mode skipped: No image files found!" -ForegroundColor Yellow
-            Write-Separator
-        }
+        Write-Host "No image files found!" -ForegroundColor Yellow
+        Write-Separator
         return
     }
 
     foreach ($image in $images) {
         $chdFilePath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
         $resolvedPath = Resolve-Path -Path $chdFilePath -ErrorAction SilentlyContinue
+        Write-Debug "Resolved path: $resolvedPath"
 
         if (-not $resolvedPath) {
             $resolvedPath = Join-Path $image.Directory.FullName "$($image.BaseName).chd"
@@ -53,10 +50,8 @@ function Compress-Images {
             $relativePath = (Resolve-Path -Path $chdFilePath).Path -replace [regex]::Escape($PWD), '.\'
             $overwrite = Read-Host "File $relativePath already exists. Do you want to overwrite? (Y/N)" | ForEach-Object { $_.ToUpper() }
             if ($overwrite -eq 'N') {
-                if (-not $SilentMode) {
-                    Write-Host "Conversion skipped for $($image.FullName)" -ForegroundColor Yellow
-                    Write-Separator
-                }
+                Write-Host "Conversion skipped for $($image.FullName)" -ForegroundColor Yellow
+                Write-Separator
                 continue
             }
         }
@@ -66,19 +61,15 @@ function Compress-Images {
             $convertCommand += " --force"
         }
 
-        if (-not $SilentMode) {
-            Write-Host "Converting image: $($image.FullName)" -ForegroundColor Cyan
-        }
+        Write-Host "Converting image: $($image.FullName)" -ForegroundColor Cyan
 
         try {
             Invoke-Expression $convertCommand
-            if (-not $SilentMode) {
-                Write-Host "Conversion complete for $($image.FullName)" -ForegroundColor Green
-                Write-Separator
-            }
+            Write-Host "Conversion complete for $($image.FullName)" -ForegroundColor Green
+            Write-Separator
         }
         catch {
-            Write-Error "Failed to convert image '$($image.FullName)': $_"
+            Write-Warning "Failed to convert image '$($image.FullName)': $_"
         }
     }
 }
@@ -88,17 +79,13 @@ function Expand-Archives {
         [string]$Path
     )
 
-    if (-not $SilentMode) {
-        Write-Host "Entering Archive Mode..." -ForegroundColor Cyan
-        Write-Separator
-    }
+    Write-Host "Extracting Archives..." -ForegroundColor Cyan
+    Write-Separator
 
     if (!(Get-Module -Name 7Zip4Powershell)) {
         try {
             Import-Module -Name 7Zip4Powershell -ErrorAction Stop
-            if (-not $SilentMode) {
-                Write-Host "7Zip4Powershell module loaded successfully." -ForegroundColor Cyan
-            }
+            Write-Debug "7Zip4Powershell module loaded successfully." -ForegroundColor Cyan
         }
         catch {
             Write-Error "Failed to load 7Zip4Powershell module: $_"
@@ -109,25 +96,20 @@ function Expand-Archives {
     $archives = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.7z$|\.gz$|\.rar$|\.zip$' }
 
     if ($archives.Count -eq 0) {
-        if (-not $SilentMode) {
-            Write-Host "Archive Mode skipped: No archive files found!" -ForegroundColor Cyan
-            Write-Separator
-        }
+        Write-Host "Archive Mode skipped: No archive files found!" -ForegroundColor Cyan
+        Write-Separator
         return
     }
 
     foreach ($archive in $archives) {
         $extractDestination = Join-Path $archive.Directory.FullName $archive.BaseName
+        Write-Debug "Extract destination: $extractDestination"
 
         try {
-            if (-not $SilentMode) {
-                Write-Host "Hashing archive: $($archive.FullName)" -ForegroundColor Cyan
-            }
+            Write-Host "Hashing archive: $($archive.FullName)" -ForegroundColor Cyan
             $hashValue = Get-FileHash -Algorithm SHA256 -LiteralPath $archive.FullName | Select-Object -ExpandProperty Hash
-            if (-not $SilentMode) {
-                Write-Host "SHA-256 hash: $hashValue" -ForegroundColor Cyan
-                Write-Separator
-            }
+            Write-Debug "SHA-256 hash: $hashValue"
+            Write-Separator
         }
         catch {
             Write-Error "Failed to hash archive '$($archive.FullName)': $_"
@@ -135,16 +117,12 @@ function Expand-Archives {
         }
 
         try {
-            if (-not $SilentMode) {
-                Write-Host "Extracting archive: $($archive.FullName)" -ForegroundColor Cyan
-            }
+            Write-Host "Extracting archive: $($archive.FullName)" -ForegroundColor Cyan
 
             Expand-7Zip -ArchiveFileName $archive.FullName -TargetPath $extractDestination
 
-            if (-not $SilentMode) {
-                Write-Host "Extraction complete." -ForegroundColor Green
-                Write-Separator
-            }
+            Write-Host "Extraction complete." -ForegroundColor Green
+            Write-Separator
         }
         catch {
             Write-Error "Issue encountered while extracting archive '$($archive.FullName)': $_"
@@ -156,9 +134,7 @@ function Expand-Archives {
             $destinationPath = Join-Path $PWD $imageFile.Name
             try {
                 Move-Item -Path $imageFile.FullName -Destination $destinationPath -Force
-                if (-not $SilentMode) {
-                    Write-Host "Moved file: $($imageFile.FullName) to $destinationPath" -ForegroundColor Cyan
-                }
+                Write-Host "Moved file: $($imageFile.FullName) to $destinationPath" -ForegroundColor Cyan
             }
             catch {
                 Write-Error "Failed to move file '$($imageFile.FullName)': $_"
@@ -178,27 +154,21 @@ function Remove-DeletionCandidates {
     $deletionCandidates = $archives + $images
 
     if ($deletionCandidates.Count -eq 0) {
-        if (-not $SilentMode) {
-            Write-Host "No files to delete." -ForegroundColor Cyan
-        }
+        Write-Host "No files to delete." -ForegroundColor Cyan
         return
     }
 
-    if (-not $SilentMode) {
-        Write-Host "File Deletion Candidates:" -ForegroundColor Cyan
-        Write-Separator
-        $deletionCandidates | Select-Object FullName | Format-Table -AutoSize
-        Write-Separator
-    }
+    Write-Host "File Deletion Candidates:" -ForegroundColor Cyan
+    Write-Separator
+    $deletionCandidates | Select-Object FullName | Format-Table -AutoSize
+    Write-Separator
 
     $deleteAll = $false
     foreach ($candidate in $deletionCandidates) {
         if ($deleteAll -or $Force) {
             try {
                 Remove-Item -Path $candidate.FullName -Force
-                if (-not $SilentMode) {
-                    Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
-                }
+                Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
             }
             catch {
                 Write-Error "Failed to delete '$($candidate.FullName)': $_"
@@ -211,9 +181,7 @@ function Remove-DeletionCandidates {
             'Y' {
                 try {
                     Remove-Item -Path $candidate.FullName -Force
-                    if (-not $SilentMode) {
-                        Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
-                    }
+                    Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
                 }
                 catch {
                     Write-Error "Failed to delete '$($candidate.FullName)': $_"
@@ -223,23 +191,17 @@ function Remove-DeletionCandidates {
                 $deleteAll = $true
                 try {
                     Remove-Item -Path $candidate.FullName -Force
-                    if (-not $SilentMode) {
-                        Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
-                    }
+                    Write-Host "Deleted: $($candidate.FullName)" -ForegroundColor Green
                 }
                 catch {
-                    Write-Error "Failed to delete '$($candidate.FullName)': $_"
+                    Write-Warning "Failed to delete '$($candidate.FullName)': $_"
                 }
             }
             'N' {
-                if (-not $SilentMode) {
-                    Write-Host "Skipping deletion of: $($candidate.FullName)" -ForegroundColor Yellow
-                }
+                Write-Host "Skipping deletion of: $($candidate.FullName)" -ForegroundColor Yellow
             }
             'D' {
-                if (-not $SilentMode) {
-                    Write-Host "No further deletions will be made." -ForegroundColor Yellow
-                }
+                Write-Host "No further deletions will be made."
                 return
             }
         }
@@ -289,17 +251,17 @@ function Optimize-PSX {
         $totalConversions = 0
         $totalOperations = 0
 
-        if (-not $SilentMode) {
-            Write-Host "Optimize-PSX Script" -ForegroundColor Cyan
-            Write-Host "Written in PowerShell" -ForegroundColor Cyan
-            Write-Host "Uses 7-Zip: https://www.7-zip.org" -ForegroundColor Cyan
-            Write-Host "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -ForegroundColor Cyan
-            Write-Separator
-        }
+
+        Write-Host "Optimize-PSX Script" -ForegroundColor Cyan
+        Write-Host "Written in PowerShell" -ForegroundColor Cyan
+        Write-Host "Uses 7-Zip: https://www.7-zip.org" -ForegroundColor Cyan
+        Write-Host "Uses chdman: https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman" -ForegroundColor Cyan
+        Write-Separator
 
         if (-not $SkipArchive) {
             Expand-Archives -Path $Path
             $totalExtractions++
+            Write-Debug "Total Extracts: $totalExtractions"
             if ($DeleteArchive) {
                 Start-Sleep -Seconds 2
                 $archivesToDelete = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -match '\.7z$|\.gz$|\.rar$|\.zip$' }
@@ -307,20 +269,16 @@ function Optimize-PSX {
                     try {
                         Remove-Item -Path $archive.FullName -Force
                         $totalOperations++
-                        if (-not $SilentMode) {
-                            Write-Host "Deleted archive: $($archive.FullName)" -ForegroundColor Green
-                        }
+                        Write-Host "Deleted archive: $($archive.FullName)" -ForegroundColor Green
                     }
                     catch {
-                        Write-Error "Failed to delete archive '$($archive.FullName)': $_"
+                        Write-Warning "Failed to delete archive '$($archive.FullName)': $_"
                     }
                 }
             }
         }
         else {
-            if (-not $SilentMode) {
-                Write-Host "Archive Mode Skipped: User declined archive extraction." -ForegroundColor Yellow
-            }
+            Write-Warning "User declined archive extraction." -ForegroundColor Yellow
         }
 
         Compress-Images -Path $Path
@@ -340,3 +298,4 @@ function Optimize-PSX {
 }
 
 Optimize-PSX @PSBoundParameters
+
