@@ -1,6 +1,4 @@
 ext/
 ext/*
-profiles/
-profiles/*
 *.log
 scripts/lib/logs/Write-Log.log
