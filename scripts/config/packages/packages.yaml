@@ -329,8 +329,7 @@ packages:
       winget:
         available: true
     categories:
-      - Limited
-      - Standard
+      - Optional
 
   - id: ajeetdsouza.zoxide
     name: Zoxide
@@ -379,6 +378,15 @@ packages:
 
   - id: JanDeDobbeleer.OhMyPosh
     name: Oh My Posh
+    managers:
+      winget:
+        available: true
+    categories:
+      - Limited
+      - Standard
+
+  - id: M2Team.NanaZip
+    name: NanaZip
     managers:
       winget:
         available: true
