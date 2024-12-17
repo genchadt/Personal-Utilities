@@ -98,16 +98,17 @@ function Invoke-FFmpeg {
     Write-Debug "Invoking FFmpeg: $($File.FullName)"
     Write-Debug "FFmpeg command: ffmpeg $FFmpegArgs"
 
-    $ffmpegOutput = & ffmpeg @FFmpegArgs 2>&1
+    & ffmpeg @FFmpegArgs
 
-    if ($LASTEXITCODE -eq 0) {
-        Write-Debug "Invoke-FFmpeg: Operation completed successfully."
-        if ($DeleteSource) {
-            Remove-Item $File.FullName -Force
-            Write-Debug "Invoke-FFmpeg: Deleted source file: $($File.FullName)"
-        }
-    } else {
-        throw "Invoke-FFmpeg: FFmpeg exited with code $LASTEXITCODE. Output: $($ffmpegOutput -join "`n")"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Invoke-FFmpeg: FFmpeg exited with code $LASTEXITCODE."
+    }
+
+    Write-Verbose "Invoke-FFmpeg: Operation completed successfully."
+
+    if ($DeleteSource) {
+        Remove-Item $File.FullName -Force
+        Write-Verbose "Invoke-FFmpeg: Deleted source file: $($File.FullName)"
     }
 }
 #endregion
@@ -249,7 +250,7 @@ function Compress-Video {
             Measure-Compression -InputFile $file -OutputFile (Get-Item $output_path)
         }
     } catch [System.IO.IOException] {
-        Write-Error "File system error: $($_.Exception.Message)" -RecommendedAction "Check file permissions and try again."
+        Write-Error "File system error: $($_.Exception.Message)"
         return
     } catch [System.Exception] {
         Write-Error "Compression failed: $($_.Exception.Message)"
