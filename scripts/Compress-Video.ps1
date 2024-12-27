@@ -1,15 +1,20 @@
 using namespace System.IO
 
 #region Configuration
-$script:DefaultExtensions = @(".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv")
-$script:DefaultFFmpegArgs = @(
-    '-i', 'null',
-    '-c:v', 'libx265',
-    '-crf', '28',
-    '-preset', 'slow',
-    '-c:a', 'copy',
-    'null'
-)
+$script:Config = @{
+    DefaultExtensions = @(".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv")
+    DefaultFFmpegArgs = @(
+        '-i', 'input.mp4',
+        '-c:v', 'libx265',
+        '-crf', '28',
+        '-preset', 'slow',
+        '-c:a', 'copy',
+        'output.mp4'
+    )
+    MaxPathLength = 260
+    MaxFileNameLength = 255
+    LogDirectory = Join-Path $PSScriptRoot "logs"
+}
 #endregion
 
 #region Validation Functions
@@ -332,10 +337,10 @@ function Compress-Video {
         [switch]$Force,
 
         [Parameter()]
-        [string[]]$Extensions = $script:DefaultExtensions,
+        [string[]]$Extensions = $script:Config.DefaultExtensions,
 
         [Parameter()]
-        [string[]]$FFmpegArgs = $script:DefaultFFmpegArgs
+        [string[]]$FFmpegArgs = $script:Config.DefaultFFmpegArgs
     )
     
     begin {
@@ -346,7 +351,7 @@ function Compress-Video {
         Write-Debug "Starting video compression process"
         $results = @()
 
-        $LogFilePath = Join-Path -Path $PSScriptRoot -ChildPath "logs" -AdditionalChildPath (Get-Date -Format "yyyyMMddHHmmss")
+        $LogFilePath = Join-Path $script:Config.LogDirectory "$($MyInvocation.MyCommand.Name)_$(Get-Date -Format 'yyyy-MM-ddTHH-mm-ss').log"
         if (-not (Test-Path $LogFilePath)) {
             New-Item -ItemType File -Path $LogFilePath | Out-Null
         }
