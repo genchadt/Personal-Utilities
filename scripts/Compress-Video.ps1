@@ -1,5 +1,3 @@
-using namespace System.IO
-
 #region Configuration
 $script:Config = @{
     DefaultExtensions = @(".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv")
@@ -34,6 +32,10 @@ function Test-FFmpeg {
             return $false
         }
         return $true
+    }
+
+    end {
+        Write-Debug "FFmpeg installation test completed"
     }
 }
 
@@ -97,6 +99,10 @@ function Test-OutputPath {
             return $false
         }
     }
+
+    end {
+        Write-Debug "Output path validity test completed"
+    }
 }
 
 function Test-AlreadyCompressed {
@@ -107,9 +113,13 @@ function Test-AlreadyCompressed {
         [System.IO.FileInfo]$File
     )
     
+    begin {}
+
     process {
         return $File.BaseName -like '*_compressed'
     }
+
+    end {}
 }
 #endregion
 
@@ -177,7 +187,7 @@ function New-CompressedPath {
             }
 
             # Get base name and sanitize
-            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($File.Name)
+            $baseName = [Path]::GetFileNameWithoutExtension($File.Name)
             Write-Debug "Original basename: $baseName"
 
             # Check if already compressed
@@ -361,6 +371,7 @@ function Compress-Video {
     Compresses only MP4 and MKV files in "C:\Videos" using libx265 codec with a quality level of 23.
 #>
     [CmdletBinding()]
+    [OutputType([void])]
     param (
         [Parameter(Position = 0)]
         [Alias("Path", "p")]
@@ -388,6 +399,7 @@ function Compress-Video {
 
         [Parameter()]
         [string[]]$FFmpegArgs = $script:Config.DefaultFFmpegArgs
+
     )
     
     begin {
