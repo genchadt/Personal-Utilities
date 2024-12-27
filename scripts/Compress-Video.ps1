@@ -443,6 +443,11 @@ function Compress-Video {
     
     end {
         if ($results.Count -gt 0) {
+            $totalOriginalSize = ($results | Measure-Object -Property OriginalSize -Sum).Sum
+            $totalCompressedSize = ($results | Measure-Object -Property CompressedSize -Sum).Sum
+            Write-Host "Average savings: $([math]::Round($averageSavings, 2))%" -ForegroundColor Cyan
+            Write-Host "Total space saved: ${totalSavedMB}MB" -ForegroundColor Cyan
+    
             Write-Host "`nCompression Summary:" -ForegroundColor Cyan
             Write-Host "Files processed: $($results.Count)" -ForegroundColor Cyan
             Write-Host "Average savings: $($results | Measure-Object -Property SavingsPercent -Average | Select-Object -ExpandProperty Average)%" -ForegroundColor Cyan
@@ -450,6 +455,8 @@ function Compress-Video {
         }
 
         Stop-Transcript
+
+        [System.GC]::Collect()
     }
 }
 #endregion
