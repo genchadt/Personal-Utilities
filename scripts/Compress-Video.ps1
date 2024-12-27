@@ -1,3 +1,5 @@
+using namespace System.IO
+
 #region Configuration
 $script:DefaultExtensions = @(".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv")
 $script:DefaultFFmpegArgs = @(
