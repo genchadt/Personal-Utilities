@@ -187,7 +187,7 @@ function New-CompressedPath {
             }
 
             # Get base name and sanitize
-            $baseName = [Path]::GetFileNameWithoutExtension($File.Name)
+            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($File.Name)
             Write-Debug "Original basename: $baseName"
 
             # Check if already compressed
@@ -346,9 +346,6 @@ function Compress-Video {
 .PARAMETER DeleteSource
     Deletes the original video files after compression.
 
-.PARAMETER Force
-    Forces compression of already compressed files.
-
 .PARAMETER Extensions
     An array of file extensions to compress. Default is $script:DefaultExtensions.
 
@@ -389,10 +386,6 @@ function Compress-Video {
         [Parameter()]
         [Alias("Delete", "del")]
         [switch]$DeleteSource,
-
-        [Parameter()]
-        [Alias("Force", "f")]
-        [switch]$Force,
 
         [Parameter()]
         [string[]]$Extensions = $script:Config.DefaultExtensions,
