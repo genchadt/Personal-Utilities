@@ -324,16 +324,63 @@ function Compress-Video {
     Compresses video files using FFmpeg and codecs such as libx265. The function
     supports multiple file extensions and allows for custom FFmpeg arguments. It
     also provides an option to delete the original files after compression.
+
+.PARAMETER InputFilePath
+    The path to the directory containing video files to compress. If not provided,
+    the current directory is used.
+
+.PARAMETER OutputFilePath
+    The path to save the compressed video files. If not provided, the compressed
+    files will be saved in the same directory as the original files.
+
+.PARAMETER DeleteSource
+    Deletes the original video files after compression.
+
+.PARAMETER Force
+    Forces compression of already compressed files.
+
+.PARAMETER Extensions
+    An array of file extensions to compress. Default is $script:DefaultExtensions.
+
+.PARAMETER FFmpegArgs
+    An array of FFmpeg arguments to use. Default is $script:DefaultFFmpegArgs.
+
+.EXAMPLE
+    Compress-Video -InputFilePath "C:\Videos" -OutputFilePath "C:\Compressed"
+
+    Compresses all video files in "C:\Videos" and saves them in "C:\Compressed".
+
+.EXAMPLE
+    Compress-Video -InputFilePath "C:\Videos" -DeleteSource -Force
+
+    Compresses all video files in "C:\Videos" and deletes the original files.
+
+.EXAMPLE
+    Compress-Video -InputFilePath "C:\Videos" -Extensions @("mp4", "mkv") -FFmpegArgs @("-c:v", "libx265", "-crf", "23")
+
+    Compresses only MP4 and MKV files in "C:\Videos" using libx265 codec with a quality level of 23.
 #>
     [CmdletBinding()]
     param (
         [Parameter(Position = 0)]
+        [Alias("Path", "p")]
+        [ValidateScript({ Test-Path $_ -PathType Container })]
         [string]$InputFilePath = (Get-Location).Path,
 
         [Parameter(Position = 1)]
+        [Alias("Output", "o")]
+        [ValidateScript({
+            if([string]::IsNullOrEmpty($_)) { return $true }
+            Test-Path (Split-Path $_) -PathType Container
+        })]
         [string]$OutputFilePath,
 
+        [Parameter()]
+        [Alias("Delete", "del")]
         [switch]$DeleteSource,
+
+        [Parameter()]
+        [Alias("Force", "f")]
         [switch]$Force,
 
         [Parameter()]
