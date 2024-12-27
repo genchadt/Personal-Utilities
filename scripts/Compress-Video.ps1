@@ -115,7 +115,7 @@ function Get-VideoFiles {
         [string]$Path,
 
         [Parameter()]
-        [string[]]$Extensions = $script:DefaultExtensions
+        [string[]]$Extensions = $script:Config.DefaultExtensions
     )
     
     begin {
@@ -232,7 +232,7 @@ function Invoke-FFmpeg {
         [string]$OutputPath,
 
         [Parameter()]
-        [array]$FFmpegArgs = $script:DefaultFFmpegArgs,
+        [string[]]$FFmpegArgs = $script:Config.DefaultFFmpegArgs,
 
         [switch]$DeleteSource
     )
@@ -328,8 +328,12 @@ function Compress-Video {
 
         [switch]$DeleteSource,
         [switch]$Force,
-        [array]$Extensions = $script:DefaultExtensions,
-        [array]$FFmpegArgs = $script:DefaultFFmpegArgs
+
+        [Parameter()]
+        [string[]]$Extensions = $script:DefaultExtensions,
+
+        [Parameter()]
+        [string[]]$FFmpegArgs = $script:DefaultFFmpegArgs
     )
     
     begin {
