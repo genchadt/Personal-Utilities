@@ -12,15 +12,6 @@ function Import-Config {
     )
 
     if (-not (Test-Path $ConfigPath -PathType Leaf)) {
-        try {
-            New-Item -ItemType File -Path $ConfigPath | Out-Null
-        }
-        catch {
-            Write-Error "Import-Config: Failed to create config file: $_"
-        }
-    }
-
-    if (-not (Test-Path $ConfigPath -PathType Leaf)) {
         Write-Error "Import-Config: Config file not found: $ConfigPath"
         return
     }
