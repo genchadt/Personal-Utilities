@@ -1,0 +1,17 @@
+[
+    {
+        "Name":           "nginx",
+        "Type":           "Executable",
+        "Directory":      "C:/nginx-1.27.2",
+        "Executable":     "nginx.exe"
+    },
+    {
+        "Name":           "big-AGI",
+        "Type":           "Command",
+        "Directory":      "S:/Dev/external/big-AGI",
+        "Commands":       [
+            "npm run build",
+            "npm run start"
+        ]
+    }
+]
