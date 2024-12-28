@@ -1,3 +1,29 @@
+[CmdletBinding()]
+param (
+    [Parameter(Position = 0)]
+    [Alias("Path", "p")]
+    [ValidateScript({ Test-Path $_ -PathType Container })]
+    [string]$InputFilePath = (Get-Location).Path,
+
+    [Parameter(Position = 1)]
+    [Alias("Output", "o")]
+    [ValidateScript({
+        if([string]::IsNullOrEmpty($_)) { return $true }
+        Test-Path (Split-Path $_) -PathType Container
+    })]
+    [string]$OutputFilePath,
+
+    [Parameter()]
+    [Alias("Delete", "del")]
+    [switch]$DeleteSource,
+
+    [Parameter()]
+    [string[]]$Extensions = $script:Config.DefaultExtensions,
+
+    [Parameter()]
+    [string[]]$FFmpegArgs = $script:Config.DefaultFFmpegArgs
+)
+
 #region Configuration
 $script:Config = @{
     DefaultExtensions = @(".avi", ".flv", ".mp4", ".mov", ".mkv", ".wmv")
@@ -368,7 +394,6 @@ function Compress-Video {
     Compresses only MP4 and MKV files in "C:\Videos" using libx265 codec with a quality level of 23.
 #>
     [CmdletBinding()]
-    [OutputType([void])]
     param (
         [Parameter(Position = 0)]
         [Alias("Path", "p")]
@@ -392,7 +417,6 @@ function Compress-Video {
 
         [Parameter()]
         [string[]]$FFmpegArgs = $script:Config.DefaultFFmpegArgs
-
     )
     
     begin {
