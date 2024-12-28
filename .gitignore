@@ -2,3 +2,4 @@ ext/
 ext/*
 *.log
 scripts/lib/logs/Write-Log.log
+scripts/config/Start-Web.json
