@@ -6,6 +6,7 @@ param (
 
 function Import-Config {
     [CmdletBinding()]
+    [OutputType([PSObject])]
     param (
         [Parameter()]
         [string]$ConfigPath
