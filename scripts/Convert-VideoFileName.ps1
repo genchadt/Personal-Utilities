@@ -1,3 +1,17 @@
+[CmdletBinding(SupportsShouldProcess = $true)]
+param (
+    [Parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+    [string]$Path = ".",
+
+    [Parameter()]
+    [Alias("TC")]
+    [switch]$TitleCase,
+
+    [Parameter()]
+    [Alias("IP")]
+    [switch]$IgnorePunctuation
+)
+
 function Convert-VideoFileName {
 <#
 .SYNOPSIS
@@ -8,6 +22,9 @@ function Convert-VideoFileName {
 
 .PARAMETER TitleCase
     Capitalizes the first letter of each word in the show name.
+
+.PARAMETER IgnorePunctuation
+    Removes punctuation from the show name.
 
 .PARAMETER WhatIf
     Shows what would happen if the script runs without actually making changes.
@@ -48,8 +65,8 @@ function Convert-VideoFileName {
             if (-not (Test-Path -Path "$PSScriptRoot\logs" -PathType Container)) {
                 New-Item -Path "$PSScriptRoot\logs" -ItemType Directory | Out-Null
             }
-
-            Start-Transcript -Path "$PSScriptRoot\logs\rename.log" | Out-Null
+            $LogFilePath = Join-Path $PSScriptRoot "logs\$($MyInvocation.MyCommand.Name)_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').log"
+            Start-Transcript -Path $LogFilePath | Out-Null
         } catch {
             Write-Error "Failed to start transcript: $_"
         }

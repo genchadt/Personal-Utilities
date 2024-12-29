@@ -95,7 +95,7 @@ function Start-Web {
     )
 
     begin {
-        $LogFilePath = Join-Path $PSScriptRoot "logs\$($MyInvocation.MyCommand.Name)_$(Get-Date -Format 'yyyy-MM-ddTHH-mm-ss').log"
+        $LogFilePath = Join-Path $PSScriptRoot "logs\$($MyInvocation.MyCommand.Name)_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').log"
         
         try {
             New-Item -ItemType File -Path $LogFilePath | Out-Null

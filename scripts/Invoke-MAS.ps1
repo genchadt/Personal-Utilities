@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param (
-    [Alias("path")]
     [Parameter(Position = 0)]
-    [string]$MASInstallerPath = "https://get.activated.win"
+    [Alias("path")]
+    [string]$MASInstallerPath
 )
 
 Import-Module "$PSScriptRoot/lib/Helpers.psm1"
@@ -20,21 +20,19 @@ function Invoke-MAS {
 #>
     [CmdletBinding()]
     param (
-        [string]$MASInstallerPath
+        [Parameter(Position = 0)]
+        [Alias("path")]
+        [string]$MASInstallerPath = "https://get.activated.win"
     )
     Write-Verbose "Invoke-MAS: Launching MAS installer..."
     try {
         Get-Elevation
         Invoke-RestMethod $MASInstallerPath | Invoke-Expression
         Write-Verbose "Invoke-MAS: Successfully launched MAS installer."
+    } catch [System.Net.WebException] {
+        Write-Error "Invoke-MAS: Failed due to network error: $_"
     } catch {
-        Write-Warning "Invoke-MAS: Failed to invoke MAS: $_"
+        Write-Error "Invoke-MAS: Failed to launch MAS installer: $_"
     }
 }
-
-$params = @{
-    MASInstallerPath = $MASInstallerPath
-    Debug            = $Debug
-    Verbose          = $Verbose
-}
-Invoke-MAS @params
+Invoke-MAS @PSBoundParameters
