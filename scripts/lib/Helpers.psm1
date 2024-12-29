@@ -1,4 +1,8 @@
-#region File Parsing
+#region Configuration
+$script:Config = @{
+    GsudoCommand = "gsudo -n"
+}
+#endregion
 
 #region Elevation
 function Assert-Gsudo {
@@ -41,7 +45,7 @@ function Grant-Elevation {
     if (Get-Command "gsudo" -ErrorAction SilentlyContinue) {
         Write-Verbose "Attempting to elevate using gsudo..."
         try {
-            & gsudo -n
+            Invoke-Expression $script:Config.GsudoCommand
         }
         catch {
             Write-Warning "Grant-Elevation: Failed to elevate using gsudo: $_"
