@@ -85,10 +85,10 @@ function Expand-Archives {
     if (!(Get-Module -Name 7Zip4Powershell)) {
         try {
             Import-Module -Name 7Zip4Powershell -ErrorAction Stop
-            Write-Debug "7Zip4Powershell module loaded successfully." -ForegroundColor Cyan
+            Write-Debug "Expand-Archives: 7Zip4Powershell module loaded successfully."
         }
         catch {
-            Write-Error "Failed to load 7Zip4Powershell module: $_"
+            Write-Error "Expand-Archives: Failed to load 7Zip4Powershell module: $_"
             return
         }
     }

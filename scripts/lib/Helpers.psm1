@@ -282,6 +282,31 @@ function Update-PowerShell {
     return $false
 }
 
+#region Logging
+function Start-Logging {
+    try {
+        if (-not (Test-Path -Path "$PSScriptRoot\logs" -PathType Container)) {
+            Write-Debug "Start-Logging: No logs directory found. Creating one..."
+            New-Item -Path "$PSScriptRoot\logs" -ItemType Directory | Out-Null
+        }
+        Write-Debug "Start-Logging: Creating transcript and initializing logging..."
+        $LogFilePath = Join-Path $PSScriptRoot "logs\$($MyInvocation.MyCommand.Name)_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').log"
+        Start-Transcript -Path $LogFilePath | Out-Null
+    } catch {
+        Write-Error "Start-Logging: Failed to start transcript: $_"
+    }
+}
+
+function Stop-Logging {
+    try {
+        Write-Debug "Stop-Logging: Stopping transcript..."
+        Stop-Transcript | Out-Null
+    } catch {
+        Write-Error "Stop-Logging: Failed to stop transcript: $_"
+    }
+}
+#endregion
+
 Export-ModuleMember -Function `
     Grant-Elevation, `
     Update-PowerShell, `
@@ -289,3 +314,7 @@ Export-ModuleMember -Function `
     Read-Prompt, `
     Set-WindowTitle, `
     Test-Module
+
+Export-ModuleMember -Function `
+    Start-Logging, `
+    Stop-Logging
