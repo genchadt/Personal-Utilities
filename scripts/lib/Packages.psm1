@@ -344,7 +344,7 @@ function Install-ChocolateyPackages {
         }
 
         if ($Force) {
-            $chocoCommand += " --force"
+            $chocoCommand = "chocoCommand --force"
         }
 
         Write-Verbose "Preparing to install Chocolatey application: $appId"
