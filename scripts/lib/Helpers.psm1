@@ -79,6 +79,10 @@ function Read-Prompt {
     The default response to return if the user enters nothing. Valid options are "Y", "N", "A", "D", or "S".
     The response made default will be capitalized in the prompt to indicate its status.
 
+.PARAMETER ResponseMap
+    Optional hashtable mapping prompt characters to custom return values.
+    Example: @{"Y"="Continue";"N"="Stop"}
+
 .EXAMPLE
     $response = Read-Prompt -Message "Are you sure you want to proceed?"
 
@@ -87,6 +91,11 @@ function Read-Prompt {
 
 .EXAMPLE
     $response = Read-Prompt -Message "Are you sure you want to proceed?" -Prompt "YNADS" -Default "N"
+
+.EXAMPLE
+    # Custom responses
+    $map = @{"Y"="Install";"N"="Skip"}
+    Read-Prompt "Install package?" -ResponseMap $map
 #>
     [CmdletBinding()]
     param (
@@ -98,7 +107,10 @@ function Read-Prompt {
 
         [Parameter(Position=2)]
         [ValidateSet("Y", "N", "A", "D", "S")]
-        [string]$Default = "Y"   # Default response to "Y"
+        [string]$Default = "Y",   # Default response to "Y"
+
+        [Parameter(Position=3)]
+        [hashtable]$ResponseMap
     )
 
     # Validate that $Prompt contains only allowed characters: Y, N, A, D, S
@@ -127,6 +139,14 @@ function Read-Prompt {
     $promptOptionsString = $options.Values -join "/"
     $prompt = "$Message [$promptOptionsString]"
 
+    if ($ResponseMap) {
+        # Validate ResponseMap contains entries for all prompt options
+        $invalidKeys = $ResponseMap.Keys | Where-Object { $Prompt -notcontains $_ }
+        if ($invalidKeys) {
+            throw "ResponseMap contains invalid keys: $($invalidKeys -join ',')"
+        }
+    }
+
     while ($true) {
         $response = Read-Host -Prompt $prompt
 
@@ -135,18 +155,19 @@ function Read-Prompt {
         }
 
         $response = $response.ToUpper()
-        if ($response.Length -eq 1) {
-            if ($Prompt -match $response) {
-                return $(switch ($response) {
-                    # boolean responses
-                    "Y" { $true }
-                    "N" { $false }
-                    # string responses
-                    "A" { "AcceptAll" }
-                    "D" { "DenyAll" }
-                    "S" { "Suspend" }
-                })
+        if ($response.Length -eq 1 -and $Prompt -match $response) {
+            if ($ResponseMap -and $ResponseMap.ContainsKey($response)) {
+                return $ResponseMap[$response]
             }
+            return $(switch ($response) {
+                # boolean responses
+                "Y" { $true }
+                "N" { $false }
+                # string responses
+                "A" { "AcceptAll" }
+                "D" { "DenyAll" }
+                "S" { "Suspend" }
+            })
         }
 
         Write-Host "Invalid response. Please enter one of: $promptOptionsString" -ForegroundColor Yellow
