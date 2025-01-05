@@ -1,3 +1,6 @@
+[CmdletBinding()]
+param()
+
 <#
 .SYNOPSIS
     Setup.ps1 - Quick setup script.
@@ -162,6 +165,9 @@ function Request-RestartExplorer {
 #############################################################################
 
 function Setup {
+    [CmdletBinding()]
+    param()
+
     Grant-Elevation
     Install-Office
     Restore-Activation
@@ -192,4 +198,4 @@ function Setup {
     Request-RestartExplorer
 }
 
-Setup
+Setup @PSBoundParameters
