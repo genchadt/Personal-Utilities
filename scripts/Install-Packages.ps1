@@ -23,7 +23,7 @@ function Start-PackageInstallation {
     $wingetApps = @()
     $scoopApps = @()
     $scoopBuckets = @()
-    $chocoApps = @()
+    $chocolateyApps = @()
 
     foreach ($package in $Packages) {
         # Winget apps
@@ -39,7 +39,7 @@ function Start-PackageInstallation {
         }
         # Chocolatey apps
         if ($package.managers.chocolatey.available) {
-            $chocoApps += $package
+            $chocolateyApps += $package
         }
     }
 
@@ -64,7 +64,7 @@ function Start-PackageInstallation {
     Install-WingetPackages -wingetApps $wingetApps -Force:$Force
 
     Write-Verbose "Calling Install-ChocolateyPackages..."
-    Install-ChocolateyPackages -chocoApps $chocoApps -Force:$Force
+    Install-ChocolateyPackages -chocoApps $chocolateyApps -Force:$Force
 
     Write-Host "All package installations are complete." -ForegroundColor Green
 }
