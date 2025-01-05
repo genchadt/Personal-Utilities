@@ -24,6 +24,7 @@ Import-Module "$PSScriptRoot/scripts/lib/Helpers.psm1" -Force
 #############################################################################
 
 function Install-Office {
+    Write-Debug "Install-Office: Starting C2R Office Installer..."
     $response = Read-Prompt -Message "Would you like to install Microsoft Office?" -Default "N"
     if ($response) {
         try {
@@ -31,13 +32,14 @@ function Install-Office {
             Start-Process "https://c2rsetup.officeapps.live.com/c2r/download.aspx?ProductreleaseID=O365ProPlusRetail&platform=x64&language=en-us&version=O16GA"
         }
         catch {
-            Write-Warning "Could not open webpage: $_"
+            Write-Warning "Install-Office: Could not open webpage: $_"
             Write-Host "Visit https://gravesoft.dev/office_c2r_links to manually download Office."
         }
     }
 }
 
 function Restore-Activation {
+    Write-Debug "Restore-Activation: Checking and restoring Microsoft product activation..."
     $response = Read-Prompt -Message "Would you like to check and restore Microsoft product activation?" -Default "N"
     Write-Host "Checking activation statuses..."
     if ($response) {
@@ -60,6 +62,7 @@ function Restore-Activation {
 }
 
 function Restore-ClassicContextMenu {
+    Write-Debug "Restore-ClassicContextMenu: Starting..."
     Write-Host "Restoring classic right-click context menu..."
     try {
         $keyPath = "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InProcServer32"
@@ -74,6 +77,17 @@ function Restore-ClassicContextMenu {
 }
 
 function Enable-DetailedStatusMessages {
+<#
+.SYNOPSIS
+    Enable-DetailedStatusMessages - Enables detailed status messages during boot.
+
+.DESCRIPTION
+    This function enables detailed status messages during boot by setting the registry key
+    `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\VerboseStatus` to `1`.
+
+.NOTES
+    This operation requires elevated privileges. Please run the script as Administrator.
+#>
     Write-Host "Enabling detailed status messages..."
     if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
         Write-Warning "This operation requires elevated privileges. Please run the script as Administrator."
@@ -93,6 +107,16 @@ function Enable-DetailedStatusMessages {
 }
 
 function Add-ScriptsFolderToPath {
+<#
+.SYNOPSIS
+    Add-ScriptsFolderToPath - Adds the scripts folder to the PATH environment variable.
+
+.DESCRIPTION
+    This function adds the scripts folder to the PATH environment variable for the current user.
+
+.NOTES
+    This operation requires elevated privileges. Please run the script as Administrator.
+#>
     Write-Host "Adding scripts folder to PATH..."
     try {
         $scriptsPath = Join-Path $PSScriptRoot "scripts"
@@ -168,34 +192,47 @@ function Setup {
     [CmdletBinding()]
     param()
 
-    Grant-Elevation
-    Install-Office
-    Restore-Activation
+    begin {
+        Write-Debug "Setup: Starting..."
 
-    $updatePerformed = $false
-
-    Write-Host "Checking for updates..."
-
-    if (Update-PowerShell) {
-        $updatePerformed = $true
+        Start-Logging
     }
 
-    if (Assert-Winget) {
-        $updatePerformed = $true
+    process {
+        Grant-Elevation
+        Install-Office
+        Restore-Activation
+
+        $updatePerformed = $false
+
+        Write-Host "Checking for updates..."
+
+        if (Update-PowerShell) {
+            $updatePerformed = $true
+        }
+
+        if (Assert-Winget) {
+            $updatePerformed = $true
+        }
+
+        if ($updatePerformed) {
+            Write-Host "Updates have been installed. Please restart your shell and rerun the script to continue."
+            exit
+        }
+
+        # Proceed with the rest of the script
+        Restore-ClassicContextMenu
+        Enable-DetailedStatusMessages
+        Add-ScriptsFolderToPath
+        Install-Packages
+        Install-Extras
+        Request-RestartExplorer
     }
 
-    if ($updatePerformed) {
-        Write-Host "Updates have been installed. Please restart your shell and rerun the script to continue."
-        exit
+    end {
+        Write-Debug "Setup: Finished."
+        Stop-Logging
     }
-
-    # Proceed with the rest of the script
-    Restore-ClassicContextMenu
-    Enable-DetailedStatusMessages
-    Add-ScriptsFolderToPath
-    Install-Packages
-    Install-Extras
-    Request-RestartExplorer
 }
 
 Setup @PSBoundParameters
