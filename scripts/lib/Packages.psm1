@@ -96,37 +96,57 @@ function Assert-Winget {
     https://apps.microsoft.com/detail/9nblggh4nns1
 #>
     [CmdletBinding()]
-    param ()
-
-    Write-Verbose "Starting Assert-Winget function."
-
-    $wingetPath = (Get-Command winget.exe -ErrorAction SilentlyContinue).Path
-    if (-not $wingetPath) {
-        Write-Debug "Winget installation link provided to the user."
-        throw "Winget is not installed. Please install it from https://github.com/microsoft/winget-cli/releases"
+    param()
+    
+    Write-Debug "Starting Assert-Winget function"
+    
+    # Check if winget exists
+    try {
+        $wingetPath = Get-Command winget -ErrorAction Stop
+        Write-Host "Winget is installed at $($wingetPath.Source)."
+    } catch {
+        Write-Error "Winget not found. Please install App Installer from the Microsoft Store."
+        return $false
     }
-    else {
-        Write-Host "Winget is installed at $wingetPath." -ForegroundColor Green
-        Write-Verbose "Winget executable found at $wingetPath."
-
-        $currentVersion = (winget --info | Select-String "Version").ToString().Split(" ")[1]
-        Write-Host "Current version of Winget is $currentVersion."
-
-        $latestVersion = (Invoke-WebRequest -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" | ConvertFrom-Json).name
-        if ($currentVersion -ne $latestVersion) {
-            Write-Host "A newer version of Winget is available: $latestVersion"
-            if (Read-Prompt -Message "Do you want to update Winget?" -Default "Y") {
-                winget install winget --source msstore
+    
+    try {
+        # Get current version
+        $currentVersion = $null
+        $versionOutput = winget --version 2>&1
+        if ($versionOutput -match '(\d+\.\d+\.\d+)') {
+            $currentVersion = $matches[1]
+            Write-Debug "Current winget version: $currentVersion"
+        }
+        
+        # Get latest version
+        $latestVersion = $null
+        $storeOutput = winget search Microsoft.DesktopAppInstaller --exact
+        if ($storeOutput -match 'Windows Package Manager\s+(\d+\.\d+\.\d+)') {
+            $latestVersion = $matches[1]
+            Write-Debug "Latest winget version: $latestVersion"
+        }
+        
+        # Compare versions
+        if ($currentVersion -and $latestVersion) {
+            if ([version]$latestVersion -gt [version]$currentVersion) {
+                Write-Host "A newer version of Winget is available: $latestVersion"
+                $response = Read-Host "Do you want to update Winget? [Y(es)/n(o)]"
+                if ($response -match '^y') {
+                    winget upgrade Microsoft.DesktopAppInstaller
+                }
             }
+        } else {
+            Write-Warning "Could not determine winget versions for comparison"
         }
-        else {
-            Write-Host "Winget is up to date." -ForegroundColor Green
-        }
-
+        
         return $true
+        
+    } catch {
+        Write-Warning "Error checking winget version: $_"
+        return $true # Continue since winget exists
+    } finally {
+        Write-Debug "Completed Assert-Winget function"
     }
-
-    Write-Verbose "Completed Assert-Winget function."
 }
 #endregion
 
