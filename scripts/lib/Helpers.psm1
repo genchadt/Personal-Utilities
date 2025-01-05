@@ -328,6 +328,7 @@ function Stop-Logging {
 }
 #endregion
 
+#region Exports
 Export-ModuleMember -Function `
     Grant-Elevation, `
     Update-PowerShell, `
