@@ -340,7 +340,7 @@ function Install-ChocolateyPackages {
         $chocoCommand = "choco install $appId -y"
 
         if ($installArgs) {
-            $chocoCommand += " $installArgs"
+            $chocoCommand = "$chocoCommand $installArgs"
         }
 
         if ($Force) {
