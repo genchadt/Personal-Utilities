@@ -94,7 +94,9 @@ function Install-Packages {
 
     # Attempt to load package configuration from YAML
     try {
+        Write-Debug "Loading package configuration from $ConfigurationFilePath"
         $packageConfig = Import-YamlPackageConfig $ConfigurationFilePath
+        Write-Debug "Package configuration loaded: $packageConfig"
         if (-not $packageConfig) {
             Write-Error "Install-Packages: Package configuration is empty or invalid. Exiting."
             return
@@ -105,6 +107,7 @@ function Install-Packages {
     }
 
     Write-Verbose "Calling Show-PackageSelectionWindow..."
+    Write-Debug "Package configuration packages: $($packageConfig.packages)"
     $selectedPackages = Show-PackageSelectionWindow -packages $packageConfig.packages
 
     if (-not $selectedPackages) {
