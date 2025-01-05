@@ -339,3 +339,4 @@ Export-ModuleMember -Function `
 Export-ModuleMember -Function `
     Start-Logging, `
     Stop-Logging
+#endregion
