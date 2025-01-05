@@ -404,4 +404,5 @@ Export-ModuleMember -Function `
     Assert-Winget, `
     Install-ScoopPackages, `
     Install-WingetPackages, `
-    Install-ChocolateyPackages
+    Install-ChocolateyPackages, `
+    Import-YamlPackageConfig
