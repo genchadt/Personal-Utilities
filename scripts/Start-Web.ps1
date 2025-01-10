@@ -83,6 +83,9 @@ function Start-Web {
 .DESCRIPTION
     Start-Web starts web applications and server daemons based on the configuration file.
 
+    The configuration file is in JSON format,  by default located here: 
+    ./config/Start-Web.json
+
 .PARAMETER ConfigPath
     The path to the configuration file. If not provided, the default configuration file will be used.
 
