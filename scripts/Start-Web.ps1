@@ -42,7 +42,8 @@ function Invoke-Entry {
                 try {
                     $process = Start-Process `
                             -FilePath $Entry.Executable `
-                            -WorkingDirectory $Entry.Directory
+                            -WorkingDirectory $Entry.Directory `
+                            -PassThru
                             
                     Write-Debug "Process started with ID: $($process.Id)"
                 }
