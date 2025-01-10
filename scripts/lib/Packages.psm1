@@ -391,7 +391,11 @@ function Import-YamlPackageConfig {
             $yamlContent = Get-Content -Path $ConfigurationFilePath -Raw
             $packageConfig = ConvertFrom-Yaml -Yaml $yamlContent
             return $packageConfig
-        } catch {
+        } catch [System.UnauthorizedAccessException] {
+            Write-Error "Install-Packages: You do not have permission to edit this file: $_"
+            return $null
+        } 
+        catch {
             Write-Error "Install-Packages: Error parsing YAML file: $_"
             return $null
         }
