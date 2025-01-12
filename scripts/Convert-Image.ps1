@@ -1,9 +1,6 @@
 [CmdletBinding()]
 param (
     [Parameter()]
-    [string]$Path,
-
-    [Parameter()]
     [string]$InputFormat,
 
     [Parameter()]
@@ -68,9 +65,6 @@ function Convert-Image {
     [CmdletBinding()]
     param (
         [Parameter()]
-        [string]$Path = (Get-Location).Path,
-
-        [Parameter()]
         [string]$InputFormat = "svg",
 
         [Parameter()]
@@ -95,7 +89,7 @@ function Convert-Image {
         [string]$Sharpen = "0x0.5"
     )
 
-    # If ImageMagick is not installed, we can't convert images.
+    # Check if ImageMagick is installed
     if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
         Write-Error "Convert-Image: ImageMagick is not installed. Please install it before running this script."
         return
@@ -104,37 +98,39 @@ function Convert-Image {
     $inputFiles = Get-ChildItem -Path . -Filter "*.$InputFormat"
 
     if ($inputFiles.Count -eq 0) {
-        Write-Warning "No .$InputFormat files found in the current directory."
+        Write-Host "No .$InputFormat files found in the current directory." -ForegroundColor Yellow
         return
     }
 
-    # Dynamically generate the ImageMagick command based on the parameters.
     foreach ($file in $inputFiles) {
         $outputFileName = "$($file.BaseName).$OutputFormat"
-
         $resizeOption = "$($ResolutionMultiplier * 100)%"
 
-        $magickCommand = "magick $($file.FullName) "
-        $magickCommand += "-density $Density "
-        $magickCommand += "-resize $resizeOption "
-        $magickCommand += "-filter $Filter "
-        $magickCommand += "-quality $Quality "
-        $magickCommand += "-sharpen $Sharpen "
-        $magickCommand += "-background none "
+        # Build arguments array
+        $magickArgs = @(
+            $file.FullName
+            "-density"
+            $Density
+            "-resize"
+            $resizeOption
+            "-filter"
+            $Filter
+            "-quality"
+            $Quality
+            "-sharpen"
+            $Sharpen
+            "-background"
+            "none"
+        )
 
         if ($OutputFormat -eq "png") {
-            $magickCommand += "-define png:compression-level=$CompressionLevel "
+            $magickArgs += "-define"
+            $magickArgs += "png:compression-level=$CompressionLevel"
         }
 
-        $magickCommand += "$outputFileName"
+        $magickArgs += $outputFileName
 
-        try {
-            Invoke-Expression $magickCommand
-        } catch {
-            Write-Error "Convert-Image: Failed to convert $($file.Name) to $outputFileName."
-            Write-Error $_.Exception.Message
-            return
-        }
+        & magick $magickArgs
 
         Write-Host "Converted $($file.Name) to $outputFileName with resolution multiplier $ResolutionMultiplier." -ForegroundColor Green
         Write-Host "Density: $Density, Filter: $Filter, Quality: $Quality, Compression Level: $CompressionLevel, Sharpen: $Sharpen" -ForegroundColor Green
