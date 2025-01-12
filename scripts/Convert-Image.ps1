@@ -25,6 +25,8 @@ param (
     [string]$Sharpen
 )
 
+Import-Module "$PSScriptRoot/lib/Filesystem.psm1"
+
 function Convert-Image {
 <#
 .SYNOPSIS
@@ -102,6 +104,9 @@ function Convert-Image {
         return
     }
 
+    # Create an array to store all conversion results
+    $conversionResults = @()
+
     foreach ($file in $inputFiles) {
         $outputFileName = "$($file.BaseName).$OutputFormat"
         $resizeOption = "$($ResolutionMultiplier * 100)%"
@@ -130,10 +135,32 @@ function Convert-Image {
 
         $magickArgs += $outputFileName
 
-        & magick $magickArgs
+        try {
+            Write-Debug "Convert-Image: Invoking & magick $magickArgs"
+            & magick $magickArgs
 
-        Write-Host "Converted $($file.Name) to $outputFileName with resolution multiplier $ResolutionMultiplier." -ForegroundColor Green
-        Write-Host "Density: $Density, Filter: $Filter, Quality: $Quality, Compression Level: $CompressionLevel, Sharpen: $Sharpen" -ForegroundColor Green
+            # Add conversion result to array
+            $properties = [ordered]@{
+                'Input' = Get-ShortenedFileName -FileName $file.Name -MaxLength 20
+                'Output' = Get-ShortenedFileName -FileName $outputFileName -MaxLength 20
+                'Scale (×)' = "×$($ResolutionMultiplier)"
+                'Density' = $Density
+                'Filter' = $Filter
+                'Quality' = $Quality
+                'Compression' = $CompressionLevel
+                'Sharpen' = $Sharpen
+            }
+            $conversionResults += New-Object PSObject -Property $properties
+
+        } catch {
+            Write-Error "Convert-Image: An error occurred while converting $($file.Name): $_"
+            continue
+        }
+    }
+
+    # Display all results in a single table
+    if ($conversionResults.Count -gt 0) {
+        $conversionResults | Format-Table -AutoSize
     }
 }
 
