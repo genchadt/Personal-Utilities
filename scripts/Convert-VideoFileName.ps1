@@ -55,9 +55,11 @@ function Convert-VideoFileName {
                 '[sS](\d{1,2})\s*[eE][pP]\s*(\d{1,2})'
                 '(?i)season\s*(\d{1,2})\s*episode\s*(\d{1,2})'
                 '(?i)(\d{1,2})x(\d{1,2})'
+                '(?i)(?:S(\d{1,2}))?[\.\-_]?(?:Part|Pt)[\.\-_](\d+)'
             )
             ValidExtensions = @('.mp4', '.mkv', '.avi', '.srt', '.sub')
             LanguageCodes  = @('en', 'eng', 'fr', 'fra', 'es', 'spa', 'de', 'deu')
+            YearPattern     = '(.*?)(?:\D|^)(\d{4})(?:\D|$)'
         }
 
         # Logging
@@ -94,13 +96,25 @@ function Convert-VideoFileName {
             
             $extension = $file.Extension.ToLower()
             $matched = $false
+            $year = $null
+            $baseName = $originalFileName
+
+            # Extract year from filename
+            if ($originalFileName -match $Config.YearPattern) {
+                $potentialYear = $matches[2]
+                if ($potentialYear -ge 1900 -and $potentialYear -le [DateTime]::Now.Year) {
+                    $year = $potentialYear
+                    $baseName = $matches[1].TrimEnd('.-_')
+                }
+            }
 
             # Find matching pattern and extract info
             foreach ($pattern in $Config.SeasonEpisodePatterns) {
                 if ($originalFileName -match $pattern) {
-                    $season = $matches[1].PadLeft(2, '0')
-                    $episode = $matches[2].PadLeft(2, '0')
-                    $showName = ($originalFileName -split $pattern)[0]
+                    $seasonValue = if ($matches[1]) { $matches[1] } else { 1 }
+                    $season = $seasonValue.ToString().PadLeft(2, '0')  # Fixed PadLeft
+                    $episode = $matches[2].ToString().PadLeft(2, '0')   # Fixed PadLeft
+                    $showNameRaw = ($baseName -split $pattern)[0]
                     $matched = $true
                     break
                 }
@@ -111,7 +125,8 @@ function Convert-VideoFileName {
                 continue
             }
 
-            # Ignore punctuation if requested
+            # Clean up show name
+            $showName = $showNameRaw
             if (-not $IgnorePunctuation) {
                 $showName = $showName -replace '[\.\-_]', ' '
                 $showName = $showName -replace '\s+', ' '
@@ -121,7 +136,14 @@ function Convert-VideoFileName {
             # Apply title case if requested
             if ($TitleCase) {
                 $textInfo = (Get-Culture).TextInfo
-                $showName = $textInfo.ToTitleCase($showName)
+                $showName = $textInfo.ToTitleCase($showName.ToLower())
+            }
+
+            # Build new filename
+            $newBaseName = if ($year) {
+                "${showName} S${season}E${episode} (${year})"
+            } else {
+                "${showName} S${season}E${episode}"
             }
 
             $newFileName = if ($extension -eq '.srt') {
@@ -129,10 +151,10 @@ function Convert-VideoFileName {
                     $matches[1]
                 }
                 else { 'en' }
-                "$showName S${season}E${episode}.${langCode}${extension}"
+                "${newBaseName}.${langCode}${extension}"
             }
             else {
-                "$showName S${season}E${episode}${extension}"
+                "${newBaseName}${extension}"
             }
 
             # Validate new filename
