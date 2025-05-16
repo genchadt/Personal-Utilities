@@ -11,6 +11,10 @@ if %ERRORLEVEL% equ 0 (
     echo PowerShell Core is not installed.
     echo Installing PowerShell Core...
     winget install --id Microsoft.PowerShell --accept-package-agreements --accept-source-agreements
+    if %ERRORLEVEL% neq 0 (
+        echo Failed to install PowerShell Core.
+        exit /b %ERRORLEVEL%
+    )
 )
 
 echo Running Setup.ps1...
