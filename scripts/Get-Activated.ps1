@@ -7,13 +7,13 @@ param (
 
 Import-Module "$PSScriptRoot/lib/Helpers.psm1"
 
-function Invoke-MAS {
+function Get-Activated {
 <#
 .SYNOPSIS
-    Invoke-MAS - Invokes the Microsoft Activation Script (MAS) installer to solve activation issues.
+    Get-Activated - Invokes the Microsoft Activation Script (MAS) installer to solve activation issues.
 
 .DESCRIPTION
-    Invoke-MAS is a function that downloads and invokes the Microsoft Activation Script (MAS) installer to solve activation issues.
+    Get-Activated is a function that downloads and invokes the Microsoft Activation Script (MAS) installer to solve activation issues.
 
 .PARAMETER MASInstallerPath
     The path to the MAS installer. Defaults to "https://get.activated.win".
@@ -24,15 +24,15 @@ function Invoke-MAS {
         [Alias("path")]
         [string]$MASInstallerPath = "https://get.activated.win"
     )
-    Write-Verbose "Invoke-MAS: Launching MAS installer..."
+    Write-Verbose "Get-Activated: Launching MAS installer..."
     try {
         Grant-Elevation
         Invoke-RestMethod $MASInstallerPath | Invoke-Expression
-        Write-Verbose "Invoke-MAS: Successfully launched MAS installer."
+        Write-Verbose "Get-Activated: Successfully launched MAS installer."
     } catch [System.Net.WebException] {
-        Write-Error "Invoke-MAS: Failed due to network error: $_"
+        Write-Error "Get-Activated: Failed due to network error: $_"
     } catch {
-        Write-Error "Invoke-MAS: Failed to launch MAS installer: $_"
+        Write-Error "Get-Activated: Failed to launch MAS installer: $_"
     }
 }
-Invoke-MAS @PSBoundParameters
+Get-Activated @PSBoundParameters

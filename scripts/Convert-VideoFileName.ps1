@@ -106,7 +106,7 @@ begin {
             # S## Part/Pt ## format (for specials)
             '(?i)(?:S(\d{1,2}))?[\.\-_ ]?(?:Part|Pt)[\.\-_ ](\d+)'
             # E## format (implied season 1)
-            '(?i)^(?:.*?)[\.\-_ ]?[eE](\d{1,2})[\.\-_ ]'
+            '(?i)[\.\-_ ]?[eE](\d{1,2})[\.\-_ ]?'
         ]
         ValidExtensions = @('.mp4', '.mkv', '.avi', '.m4v', '.mov', '.wmv', '.ts', '.m2ts', '.webm', '.srt', '.sub', '.idx', '.ass')
         LanguageCodes = @('en', 'eng', 'fr', 'fra', 'es', 'spa', 'de', 'deu', 'it', 'ita', 'ja', 'jpn', 'ko', 'kor', 'zh', 'zho')
@@ -405,7 +405,7 @@ process {
             # Check if this might be related to a video we'll process
             $possibleVideoName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
             # Remove potential language code suffix
-            $possibleVideoName = $possibleVideoName -replace "\.([$($config.LanguageCodes -join '|')])\s*$", ""
+            $possibleVideoName = $possibleVideoName -replace "\.($($config.LanguageCodes -join '|'))\s*$", ""
             
             $matchingVideo = $files | Where-Object { 
                 $_.Extension -notin @('.srt', '.sub', '.idx', '.ass') -and 
@@ -603,7 +603,7 @@ process {
                 if ($extension -notin @('.srt', '.sub', '.idx', '.ass')) {
                     $relatedSubs = $secondPassFiles | Where-Object { 
                         [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -eq [System.IO.Path]::GetFileNameWithoutExtension($originalFileName) -or
-                        [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -match "^$([regex]::Escape([System.IO.Path]::GetFileNameWithoutExtension($originalFileName)))\.([$($config.LanguageCodes -join '|')])\s*$"
+                        [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -match "^$([regex]::Escape([System.IO.Path]::GetFileNameWithoutExtension($originalFileName)))\.($($config.LanguageCodes -join '|'))\s*$"
                     }
                     
                     foreach ($sub in $relatedSubs) {
@@ -611,7 +611,7 @@ process {
                         $subName = [System.IO.Path]::GetFileNameWithoutExtension($sub.Name)
                         
                         # Extract language code if present
-                        if ($subName -match "\.([$($config.LanguageCodes -join '|')])\s*$") {
+                        if ($subName -match "\.($($config.LanguageCodes -join '|'))\s*$") {
                             $langCode = $matches[1]
                         }
                         
@@ -680,7 +680,7 @@ process {
         if ($year) { $newBaseName += " ($year)" }
         
         $langCode = "en" # Default
-        if ($baseName -match "\.([$($config.LanguageCodes -join '|')])\s*$") {
+        if ($baseName -match "\.($($config.LanguageCodes -join '|'))\s*$") {
             $langCode = $matches[1]
         }
         
