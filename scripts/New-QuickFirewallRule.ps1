@@ -18,11 +18,21 @@ function Update-FirewallRules {
         [string]$ProgramPath,
         [switch]$Remove
     )
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::`
+        GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
     if ($Remove) {
         if (Test-FirewallRuleExists -RuleName $RuleName) {
-            Remove-NetFirewallRule -DisplayName $RuleName
-            Write-Host "Firewall rule '$RuleName' has been removed." -ForegroundColor Green
+            try {
+                if (-not $isAdmin) {
+                    throw "This script requires administrator privileges"
+                }
+
+                Remove-NetFirewallRule -DisplayName $RuleName -ErrorAction Stop
+                Write-Host "Firewall rule '$RuleName' removed successfully." -ForegroundColor Green
+            } catch {
+                Write-Error "Failed to remove firewall rule '$RuleName': $_"
+            }
         } else {
             Write-Host "No rule named '$RuleName' exists to remove." -ForegroundColor Yellow
         }
@@ -36,12 +46,10 @@ function Update-FirewallRules {
 
     foreach ($direction in @('Inbound', 'Outbound')) {
         try {
-            $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
             if (-not $isAdmin) {
                 throw "This script requires administrator privileges"
             }
-            
+
             New-NetFirewallRule -DisplayName $RuleName -Direction $direction -Action Block -Program $ProgramPath -Profile Any
         } catch {
             Write-Error "Failed to create firewall rule '$RuleName' for $direction direction: $_"
