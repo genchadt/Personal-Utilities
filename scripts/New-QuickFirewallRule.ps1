@@ -35,7 +35,18 @@ function Update-FirewallRules {
     }
 
     foreach ($direction in @('Inbound', 'Outbound')) {
-        New-NetFirewallRule -DisplayName $RuleName -Direction $direction -Action Block -Program $ProgramPath -Profile Any
+        try {
+            $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+            if (-not $isAdmin) {
+                throw "This script requires administrator privileges"
+            }
+            
+            New-NetFirewallRule -DisplayName $RuleName -Direction $direction -Action Block -Program $ProgramPath -Profile Any
+        } catch {
+            Write-Error "Failed to create firewall rule '$RuleName' for $direction direction: $_"
+            return
+        }
     }
     Write-Host "Firewall rules for blocking folder '$RuleName' created successfully." -ForegroundColor Green
 }
