@@ -1,75 +1,88 @@
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param (
+    [Alias("p")]
+    [Parameter(Position = 0, Mandatory = $true)]
     [string]$Path,
+
+    [Alias("del")]
     [switch]$Delete
 )
 
 function Test-FirewallRuleExists {
     [CmdletBinding()]
-    param([string]$RuleName)
-    
-    return $null -ne (Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue)
+    param(
+        [string[]]$RuleNames
+    )
+    foreach ($name in $RuleNames) {
+        if (Get-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue) {
+            return $true
+        }
+    }
+    return $false
 }
 
 function Update-FirewallRules {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [string]$RuleName,
         [string]$ProgramPath,
         [switch]$Remove
     )
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::`
-        GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+    $ruleNames = @("$RuleName (Inbound)", "$RuleName (Outbound)")
 
     if ($Remove) {
-        if (Test-FirewallRuleExists -RuleName $RuleName) {
-            try {
-                if (-not $isAdmin) {
-                    throw "This script requires administrator privileges"
+        if (Test-FirewallRuleExists -RuleNames $ruleNames) {
+            foreach ($name in $ruleNames) {
+                try {
+                    if ($PSCmdlet.ShouldProcess($name, "Remove Firewall Rule")) {
+                        Remove-NetFirewallRule -DisplayName $name -ErrorAction SilentlyContinue
+                        Write-Host "Firewall rule '$name' removed successfully." -ForegroundColor Green
+                    }
+                } catch {
+                    Write-Error "Failed to remove firewall rule '$name': $_"
                 }
-
-                Remove-NetFirewallRule -DisplayName $RuleName -ErrorAction Stop
-                Write-Host "Firewall rule '$RuleName' removed successfully." -ForegroundColor Green
-            } catch {
-                Write-Error "Failed to remove firewall rule '$RuleName': $_"
             }
         } else {
-            Write-Host "No rule named '$RuleName' exists to remove." -ForegroundColor Yellow
+            Write-Host "No rules starting with '$RuleName' exist to remove." -ForegroundColor Yellow
         }
         return
     }
 
-    if (Test-FirewallRuleExists -RuleName $RuleName) {
-        Write-Host "Firewall rule '$RuleName' already exists." -ForegroundColor Yellow
+    if (Test-FirewallRuleExists -RuleNames $ruleNames) {
+        Write-Host "One or more firewall rules for '$RuleName' already exist." -ForegroundColor Yellow
         return
     }
 
     foreach ($direction in @('Inbound', 'Outbound')) {
+        $ruleDisplayName = "$RuleName ($direction)"
         try {
-            if (-not $isAdmin) {
-                throw "This script requires administrator privileges"
+            if ($PSCmdlet.ShouldProcess($ruleDisplayName, "Create Firewall Rule")) {
+                New-NetFirewallRule -DisplayName $ruleDisplayName -Direction $direction -Action Block -Program $ProgramPath -Profile Any
+                Write-Host "Firewall rule '$ruleDisplayName' created successfully." -ForegroundColor Green
             }
-
-            New-NetFirewallRule -DisplayName $RuleName -Direction $direction -Action Block -Program $ProgramPath -Profile Any
         } catch {
-            Write-Error "Failed to create firewall rule '$RuleName' for $direction direction: $_"
-            return
+            Write-Error "Failed to create firewall rule '$ruleDisplayName' for $direction direction: $_"
+            # Rollback: Remove any rules created for this name to ensure consistency.
+            Write-Host "Attempting to roll back by removing rules for '$RuleName'." -ForegroundColor Yellow
+            Update-FirewallRules -RuleName $RuleName -ProgramPath $ProgramPath -Remove:$true
+            Throw "Failed to create all firewall rules for '$RuleName'. Any partially created rules have been removed."
         }
     }
-    Write-Host "Firewall rules for blocking folder '$RuleName' created successfully." -ForegroundColor Green
 }
 
-function New-QuickFirewallRule {
-    [CmdletBinding()]
-    param(
-        [Alias("p")]
-        [Parameter(Position = 0)]
-        [string]$Path = (Get-Location).Path,
+begin {
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        throw "Administrator rights are required to manage firewall rules."
+    }
 
-        [Alias("del")]
-        [switch]$Delete
-    )
+    if (-not (Test-Path -Path $Path -PathType Container)) {
+        throw "The specified path '$Path' is not a valid directory."
+    }
+}
 
+process {
     try {
         $resolvedPath = Resolve-Path -Path $Path -ErrorAction Stop
         $folderName = (Get-Item $resolvedPath).Name
@@ -80,5 +93,3 @@ function New-QuickFirewallRule {
         Write-Error "Error: $_"
     }
 }
-
-New-QuickFirewallRule @PSBoundParameters
