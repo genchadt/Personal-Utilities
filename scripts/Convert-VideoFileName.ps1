@@ -98,34 +98,27 @@ begin {
     $defaultConfig = @{
         SeasonEpisodePatterns = @(
             # Standard S##E## format
-            '[sS](\d{1,2})[eE](\d{1,2}(?:-[eE]?\d{1,2})?)'
+            '[sS](\d{1,2})[eE](\d{1,2}(?:-[eE]?\d{1,2})?)',
             # Season ## Episode ## format
-            '(?i)season\s*(\d{1,2})\s*episode\s*(\d{1,2})'
+            '(?i)season\s*(\d{1,2})\s*episode\s*(\d{1,2})',
             # ##x## format
-            '(?i)(\d{1,2})x(\d{1,2}(?:-\d{1,2})?)'
+            '(?i)(\d{1,2})x(\d{1,2}(?:-\d{1,2})?)',
             # S## Part/Pt ## format (for specials)
-            '(?i)(?:S(\d{1,2}))?[\.\-_ ]?(?:Part|Pt)[\.\-_ ](\d+)'
+            '(?i)(?:S(\d{1,2}))?[\.\-_ ]?(?:Part|Pt)[\.\-_ ](\d+)',
             # E## format (implied season 1)
             '(?i)[\.\-_ ]?[eE](\d{1,2})[\.\-_ ]?'
-        ]
-        ValidExtensions = @('.mp4', '.mkv', '.avi', '.m4v', '.mov', '.wmv', '.ts', '.m2ts', '.webm', '.srt', '.sub', '.idx', '.ass')
+        )
+        ValidVideoExtensions = @('.mp4', '.mkv', '.avi', '.m4v', '.mov', '.wmv', '.ts', '.m2ts', '.webm')
+        ValidSubtitleExtensions = @('.srt', '.sub', '.idx', '.ass')
         LanguageCodes = @('en', 'eng', 'fr', 'fra', 'es', 'spa', 'de', 'deu', 'it', 'ita', 'ja', 'jpn', 'ko', 'kor', 'zh', 'zho')
         YearPattern = '(?:^|\D)(\d{4})(?:\D|$)'
         ResolutionPatterns = @(
-            '(?i)(?<resolution>4k|2160p|1080p|720p|480p)'
+            '(?i)(?<resolution>4k|2160p|1080p|720p|480p)',
             '(?i)(?<resolution>\d+x\d+)'
         )
         SpecialMarkers = @('special', 'ova', 'pilot', 'extra')
-        RemovePatterns = @(
-            # Release group tags
-            '\[(?:[^\[\]]+)\]'
-            # Common quality indicators
-            '(?i)(?:HDTV|WEB-DL|BRRip|BluRay|DVDRip)'
-            # Technical specs
-            '(?i)(?:x264|x265|HEVC|AAC|AC3|DTS)'
-            # Other common noise in filenames
-            '(?i)(?:REPACK|PROPER|RERIP)'
-        )
+        # Combined pattern for faster removal
+        RemovePattern = '\[(?:[^\[\]]+)\]|(?i)(?:HDTV|WEB-DL|BRRip|BluRay|DVDRip|x264|x265|HEVC|AAC|AC3|DTS|REPACK|PROPER|RERIP)'
         MaxFilenameLength = 240 # To avoid path length issues
         MaxRetries = 3
         RetryDelaySeconds = 2
@@ -146,6 +139,7 @@ begin {
             Write-Warning "Using default configuration"
         }
     }
+    $config.ValidExtensions = $config.ValidVideoExtensions + $config.ValidSubtitleExtensions
     #endregion Configuration Loading
 
     #region Setup Logging
@@ -156,12 +150,12 @@ begin {
             New-Item -Path $logDir -ItemType Directory -Force | Out-Null
         }
         # Cleanup old logs (keep last 10)
-        Get-ChildItem -Path $logDir -Filter "*.log" | Sort-Object LastWriteTime -Descending | 
+        Get-ChildItem -Path $logDir -Filter "*.log" | Sort-Object LastWriteTime -Descending |
             Select-Object -Skip 10 | Remove-Item -Force
-        
+
         $LogPath = Join-Path $logDir "VideoFileRename_$timestamp.log"
     }
-    
+
     try {
         Start-Transcript -Path $LogPath -ErrorAction Stop
         Write-Host "Video File Rename Operation Started at $(Get-Date)" -ForegroundColor Cyan
@@ -181,40 +175,36 @@ begin {
         )
 
         $files = @()
-        
+        $searchParams = @{
+            File        = $true
+            ErrorAction = 'SilentlyContinue'
+        }
+        if ($Recurse) {
+            $searchParams['Recurse'] = $true
+        }
+
         foreach ($p in $Path) {
-            # Handle wildcards and file/directory distinction
-            if ((Test-Path -Path $p -PathType Container) -or ($p -match '\*')) {
-                $searchParams = @{
-                    Path = $p
-                    File = $true
-                    ErrorAction = 'SilentlyContinue'
+            try {
+                $providerPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($p)
+                if (Test-Path -LiteralPath $providerPath -PathType Container) {
+                    $searchParams.Path = $providerPath
+                    $files += Get-ChildItem @searchParams
                 }
-                
-                if ($Recurse) {
-                    $searchParams['Recurse'] = $true
+                elseif ($p -match '[\*\?]') {
+                    $searchParams.Path = $p
+                    $files += Get-ChildItem @searchParams
                 }
-                
-                $foundFiles = Get-ChildItem @searchParams | 
-                    Where-Object { $_.Extension -in $config.ValidExtensions }
-                
-                $files += $foundFiles
+                else {
+                    $files += Get-Item -LiteralPath $providerPath
+                }
             }
-            else {
-                # Handle individual file
-                try {
-                    $file = Get-Item -Path $p -ErrorAction Stop
-                    if ($file.Extension -in $config.ValidExtensions) {
-                        $files += $file
-                    }
-                }
-                catch {
-                    Write-Warning "Could not access path: $p - $_"
-                }
+            catch {
+                Write-Warning "Could not access path: $p - $_"
             }
         }
-        
-        return $files
+
+        # Filter for valid extensions
+        return $files | Where-Object { $_.Extension -in $config.ValidExtensions }
     }
 
     function Format-ShowName {
@@ -231,12 +221,10 @@ begin {
         if (-not $IgnorePunctuation) {
             $result = $result -replace '[\.\-_]', ' '
         }
-        
-        # Remove known noise patterns
-        foreach ($pattern in $config.RemovePatterns) {
-            $result = $result -replace $pattern, ''
-        }
-        
+
+        # Remove known noise patterns using the combined pattern
+        $result = $result -replace $config.RemovePattern, ''
+
         # Clean up whitespace
         $result = $result -replace '\s+', ' '
         $result = $result.Trim()
@@ -271,10 +259,11 @@ begin {
     function Extract-Resolution {
         [CmdletBinding()]
         param ([string]$FileName)
-        
+
         foreach ($pattern in $config.ResolutionPatterns) {
-            if ($FileName -match $pattern) {
-                return $Matches.resolution
+            $match = [regex]::Match($FileName, $pattern)
+            if ($match.Success) {
+                return $match.Groups['resolution'].Value
             }
         }
         return $null
@@ -300,46 +289,133 @@ begin {
         return $result
     }
 
-    function Rename-WithRetry {
+    function Move-File {
         [CmdletBinding(SupportsShouldProcess = $true)]
         param (
-            [string]$Path,
+            [System.IO.FileInfo]$File,
             [string]$NewName,
-            [int]$MaxRetries = 3,
-            [int]$DelaySeconds = 2
+            [string]$TargetDir,
+            [switch]$Force
         )
-        
-        $retryCount = 0
-        $success = $false
-        $lastError = $null
 
-        while (-not $success -and $retryCount -lt $MaxRetries) {
-            try {
-                if ($PSCmdlet.ShouldProcess($Path, "Rename to $NewName")) {
-                    Rename-Item -Path $Path -NewName $NewName -ErrorAction Stop
-                    $success = $true
+        $newPath = Join-Path $TargetDir $NewName
+        $originalPath = $File.FullName
+
+        # Skip if no change is needed
+        if ($originalPath -eq $newPath) {
+            Write-Verbose "File '$($File.Name)' already has the correct name and location."
+            return @{ Skipped = $true }
+        }
+
+        # Check for existing file at destination
+        if ((Test-Path $newPath) -and -not $Force) {
+            Write-Warning "Cannot process '$($File.Name)' - target '$NewName' already exists in destination."
+            return @{ Skipped = $true }
+        }
+
+        $operationDesc = if ($File.DirectoryName -ne $TargetDir) {
+            "Move and rename to '$NewName' in '$TargetDir'"
+        }
+        else {
+            "Rename to '$NewName'"
+        }
+
+        if (-not $PSCmdlet.ShouldProcess($File.Name, $operationDesc)) {
+            return @{ Skipped = $true }
+        }
+
+        try {
+            # Ensure target directory exists
+            if ($File.DirectoryName -ne $TargetDir -and -not (Test-Path $TargetDir)) {
+                New-Item -Path $TargetDir -ItemType Directory -Force | Out-Null
+            }
+
+            $moveParams = @{
+                Path        = $originalPath
+                Destination = $newPath
+                Force       = $Force
+                ErrorAction = 'Stop'
+            }
+            Move-Item @moveParams
+
+            Write-Host "SUCCESS: '$($File.Name)' -> '$NewName'" -ForegroundColor Green
+            $result = @{ Renamed = $true }
+            if ($File.DirectoryName -ne $TargetDir) {
+                $result.Moved = $true
+            }
+            return $result
+        }
+        catch {
+            Write-Error "Failed to process '$($File.Name)': $_"
+            return @{ Error = $true }
+        }
+    }
+
+    function Parse-FileInfo {
+        [CmdletBinding()]
+        param (
+            [System.IO.FileInfo]$File
+        )
+
+        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($File.Name)
+        $info = @{
+            OriginalFileName = $File.Name
+            BaseName         = $baseName
+            Extension        = $File.Extension.ToLower()
+            IsSubtitle       = $File.Extension -in $config.ValidSubtitleExtensions
+            ShowName         = $null
+            Season           = "01"
+            Episode          = "01"
+            Year             = $null
+            Resolution       = $null
+            IsSpecial        = $false
+            Matched          = $false
+        }
+
+        # Check for special markers
+        foreach ($marker in $config.SpecialMarkers) {
+            if ($info.BaseName -match "(?i)$marker") {
+                $info.IsSpecial = $true
+                break
+            }
+        }
+
+        # Extract Year and Resolution
+        $info.Year = Extract-Year -FileName $info.BaseName
+        if ($PreserveResolution) {
+            $info.Resolution = Extract-Resolution -FileName $info.BaseName
+        }
+
+        # Find matching pattern for season/episode info
+        foreach ($pattern in $config.SeasonEpisodePatterns) {
+            if ($info.BaseName -match $pattern) {
+                if ($matches.Count -gt 2) {
+                    $info.Season = $matches[1].ToString().PadLeft(2, '0')
+                    $info.Episode = $matches[2].ToString().PadLeft(2, '0')
                 }
                 else {
-                    return $true # WhatIf mode, just report success
+                    $info.Episode = $matches[1].ToString().PadLeft(2, '0')
                 }
-            }
-            catch {
-                $lastError = $_
-                $retryCount++
-                
-                if ($retryCount -lt $MaxRetries) {
-                    Write-Verbose "Retry $($retryCount/$MaxRetries): Failed to rename '$Path' to '$NewName'. Waiting $DelaySeconds seconds..."
-                    Start-Sleep -Seconds $DelaySeconds
-                }
+                $info.ShowName = ($info.BaseName -split $pattern)[0]
+                $info.Matched = $true
+                break
             }
         }
-        
-        if (-not $success) {
-            Write-Error "Failed to rename '$Path' to '$NewName' after $MaxRetries attempts: $lastError"
-            return $false
+
+        # Handle specials that didn't match a standard pattern
+        if ($info.IsSpecial -and -not $info.Matched) {
+            $info.Season = "00"
+            if ($info.BaseName -match "(?i)(?:ep|episode|#)?(\d{1,2})") {
+                $info.Episode = $matches[1].ToString().PadLeft(2, '0')
+                $info.ShowName = ($info.BaseName -split "(?i)(?:ep|episode|#)?$($info.Episode)")[0]
+            }
+            else {
+                $info.ShowName = $info.BaseName
+            }
+            $info.Matched = $true
         }
-        
-        return $true
+
+        return $info
     }
 
     function New-SeasonFolder {
@@ -373,368 +449,127 @@ begin {
 }
 
 process {
-    # Get files to process
-    $files = Get-VideoFiles -Path $Path -Recurse:$Recurse
-    $totalFiles = $files.Count
-    
-    if ($totalFiles -eq 0) {
-        Write-Warning "No valid video files found with extensions: $($config.ValidExtensions -join ', ')"
+    # Get and categorize files
+    $allFiles = Get-VideoFiles -Path $Path -Recurse:$Recurse
+    if ($allFiles.Count -eq 0) {
+        Write-Warning "No valid files found with extensions: $($config.ValidExtensions -join ', ')"
         return
     }
-    
-    Write-Host "Found $totalFiles files to process" -ForegroundColor Green
-    
-    # Track files that need to be processed in a separate pass (for subtitles that match video files)
-    $secondPassFiles = @()
-    
-    # Process each file
-    $fileCounter = 0
-    foreach ($file in $files) {
-        $fileCounter++
-        $originalFileName = $file.Name
-        $percentComplete = [math]::Round(($fileCounter / $totalFiles) * 100)
-        
-        Write-Progress -Activity "Processing Files" -Status "$fileCounter of $totalFiles - $originalFileName" `
-            -PercentComplete $percentComplete
-        
-        Write-Verbose "[$fileCounter/$totalFiles] Processing: $originalFileName"
-        
-        # Skip subtitle files for the first pass (they will be handled with their corresponding video files)
-        $isSubtitle = $file.Extension -in @('.srt', '.sub', '.idx', '.ass')
-        if ($isSubtitle) {
-            # Check if this might be related to a video we'll process
-            $possibleVideoName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-            # Remove potential language code suffix
-            $possibleVideoName = $possibleVideoName -replace "\.($($config.LanguageCodes -join '|'))\s*$", ""
-            
-            $matchingVideo = $files | Where-Object { 
-                $_.Extension -notin @('.srt', '.sub', '.idx', '.ass') -and 
-                [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -eq $possibleVideoName 
-            }
-            
-            if ($matchingVideo) {
-                # Will process this with the matching video
-                $secondPassFiles += $file
-                continue
-            }
+
+    Write-Host "Found $($allFiles.Count) files to process." -ForegroundColor Green
+
+    # Create a lookup for video files by their base name (without extension)
+    $videoFilesMap = @{}
+    $subtitleFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+
+    foreach ($file in $allFiles) {
+        if ($file.Extension -in $config.ValidVideoExtensions) {
+            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+            $videoFilesMap[$baseName] = $file
         }
-        
-        $stats.Processed++
-        $extension = $file.Extension.ToLower()
-        $matched = $false
-        $season = "01"  # Default to Season 1
-        $episode = "01" # Default to Episode 1
-        $isSpecial = $false
-        $showName = $null
-        $year = $null
-        $resolution = $null
-        
-        # Check if file contains "special" markers
-        foreach ($marker in $config.SpecialMarkers) {
-            if ($originalFileName -match "(?i)$marker") {
-                $isSpecial = $true
-                break
-            }
-        }
-        
-        # Extract additional information
-        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($originalFileName)
-        $year = Extract-Year -FileName $baseName
-        
-        if ($PreserveResolution) {
-            $resolution = Extract-Resolution -FileName $baseName
-        }
-        
-        # Find matching pattern for season/episode info
-        foreach ($pattern in $config.SeasonEpisodePatterns) {
-            if ($baseName -match $pattern) {
-                if ($matches.Count -gt 2) {
-                    $season = $matches[1].ToString().PadLeft(2, '0')
-                    $episode = $matches[2].ToString().PadLeft(2, '0')
-                }
-                else {
-                    # For patterns where season might be implicit (like E01)
-                    $episode = $matches[1].ToString().PadLeft(2, '0')
-                }
-                
-                # Extract show name (everything before the pattern match)
-                $showNameRaw = ($baseName -split $pattern)[0]
-                $matched = $true
-                break
-            }
-        }
-        
-        # If marked as special and not matched, set season to 00
-        if ($isSpecial -and -not $matched) {
-            $season = "00"
-            # Try to extract just an episode number
-            if ($baseName -match "(?i)(?:ep|episode|#)?(\d{1,2})") {
-                $episode = $matches[1].ToString().PadLeft(2, '0')
-                $showNameRaw = ($baseName -split "(?i)(?:ep|episode|#)?$episode")[0]
-                $matched = $true
-            }
-            else {
-                $showNameRaw = $baseName
-                $matched = $true
-            }
-        }
-        
-        if (-not $matched) {
-            Write-Warning "[$fileCounter/$totalFiles] Could not parse season/episode information from: $originalFileName"
-            $stats.Skipped++
-            continue
-        }
-        
-        # Process show name
-        $showName = Format-ShowName -Name $showNameRaw -TitleCase:$TitleCase -IgnorePunctuation:$IgnorePunctuation
-        
-        if ([string]::IsNullOrWhiteSpace($showName)) {
-            Write-Warning "[$fileCounter/$totalFiles] Show name would be empty after formatting: $originalFileName"
-            $stats.Skipped++
-            continue
-        }
-        
-        # Build new filename
-        $newBaseName = if ($isSpecial) {
-            "${showName} - Special S${season}E${episode}"
-        }
-        else {
-            "${showName} S${season}E${episode}"
-        }
-        
-        # Add year if available
-        if ($year) {
-            $newBaseName += " ($year)"
-        }
-        
-        # Add resolution if available and requested
-        if ($resolution -and $PreserveResolution) {
-            $newBaseName += " [$resolution]"
-        }
-        
-        # Handle subtitles with language codes
-        $newFileName = if ($isSubtitle) {
-            $langCode = "en" # Default language
-            
-            # Extract language code if present
-            $langPattern = "\.($($config.LanguageCodes -join '|'))\s*$"
-            if ($baseName -match $langPattern) {
-                $langCode = $matches[1]
-            }
-            
-            "${newBaseName}.${langCode}${extension}"
-        }
-        else {
-            "${newBaseName}${extension}"
-        }
-        
-        # Ensure filename is valid
-        $newFileName = Get-ValidFileName -FileName $newFileName
-        
-        # Determine target path
-        $targetDir = if ($MoveToSeasonFolders) {
-            New-SeasonFolder -BasePath $file.DirectoryName -Season $season
-        }
-        else {
-            $file.DirectoryName
-        }
-        
-        $newPath = Join-Path $targetDir $newFileName
-        
-        # Check if target file already exists
-        if ((Test-Path $newPath) -and -not $Force -and ($file.FullName -ne $newPath)) {
-            Write-Warning "[$fileCounter/$totalFiles] Cannot rename '$originalFileName' - '$newFileName' already exists"
-            $stats.Skipped++
-            continue
-        }
-        
-        # Skip if no change needed
-        if ($file.Name -eq $newFileName -and $file.DirectoryName -eq $targetDir) {
-            Write-Verbose "[$fileCounter/$totalFiles] File '$originalFileName' already has the correct name"
-            $stats.Skipped++
-            continue
-        }
-        
-        # Perform the rename/move
-        try {
-            $operationDesc = if ($file.DirectoryName -ne $targetDir) {
-                "Move and rename to $newFileName in $targetDir"
-            }
-            else {
-                "Rename to $newFileName"
-            }
-            
-            if ($PSCmdlet.ShouldProcess($originalFileName, $operationDesc)) {
-                # For move operations
-                if ($file.DirectoryName -ne $targetDir) {
-                    if (-not (Test-Path $targetDir)) {
-                        New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
-                    }
-                    
-                    if ($file.Name -eq $newFileName) {
-                        # Just move, no rename
-                        Move-Item -Path $file.FullName -Destination $targetDir -Force:$Force
-                        $stats.Moved++
-                    }
-                    else {
-                        # Move and rename
-                        Move-Item -Path $file.FullName -Destination $newPath -Force:$Force
-                        $stats.Renamed++
-                        $stats.Moved++
-                    }
-                }
-                else {
-                    # Just rename
-                    $success = Rename-WithRetry -Path $file.FullName -NewName $newFileName -MaxRetries $config.MaxRetries -DelaySeconds $config.RetryDelaySeconds
-                    if ($success) {
-                        $stats.Renamed++
-                    }
-                    else {
-                        $stats.Errors++
-                    }
-                }
-                
-                # Report success
-                Write-Host "[$fileCounter/$totalFiles] " -NoNewline
-                Write-Host "SUCCESS: " -ForegroundColor Green -NoNewline
-                Write-Host "'$originalFileName' → '$newFileName'"
-                
-                # Process related subtitle files if this is a video file
-                if ($extension -notin @('.srt', '.sub', '.idx', '.ass')) {
-                    $relatedSubs = $secondPassFiles | Where-Object { 
-                        [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -eq [System.IO.Path]::GetFileNameWithoutExtension($originalFileName) -or
-                        [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -match "^$([regex]::Escape([System.IO.Path]::GetFileNameWithoutExtension($originalFileName)))\.($($config.LanguageCodes -join '|'))\s*$"
-                    }
-                    
-                    foreach ($sub in $relatedSubs) {
-                        $langCode = "en" # Default
-                        $subName = [System.IO.Path]::GetFileNameWithoutExtension($sub.Name)
-                        
-                        # Extract language code if present
-                        if ($subName -match "\.($($config.LanguageCodes -join '|'))\s*$") {
-                            $langCode = $matches[1]
-                        }
-                        
-                        $newSubName = "${newBaseName}.${langCode}$($sub.Extension)"
-                        $newSubName = Get-ValidFileName -FileName $newSubName
-                        $newSubPath = Join-Path $targetDir $newSubName
-                        
-                        if ($PSCmdlet.ShouldProcess($sub.Name, "Move and rename to $newSubName")) {
-                            try {
-                                Move-Item -Path $sub.FullName -Destination $newSubPath -Force:$Force
-                                $stats.Renamed++
-                                Write-Host "[$fileCounter/$totalFiles] " -NoNewline
-                                Write-Host "SUCCESS: " -ForegroundColor Green -NoNewline
-                                Write-Host "Subtitle '$($sub.Name)' → '$newSubName'"
-                            }
-                            catch {
-                                Write-Error "Failed to process subtitle '$($sub.Name)': $_"
-                                $stats.Errors++
-                            }
-                        }
-                        
-                        # Remove from second pass list
-                        $secondPassFiles = $secondPassFiles | Where-Object { $_.FullName -ne $sub.FullName }
-                    }
-                }
-            }
-        }
-        catch {
-            Write-Error "[$fileCounter/$totalFiles] Failed to rename '$originalFileName': $_"
-            $stats.Errors++
+        elseif ($file.Extension -in $config.ValidSubtitleExtensions) {
+            $subtitleFiles.Add($file)
         }
     }
-    
-    # Handle any remaining subtitle files that weren't processed with their videos
-    foreach ($subFile in $secondPassFiles) {
+
+    # Process video files first
+    $processedItems = @{} # To store new name info for subtitle matching
+    $fileCounter = 0
+    $totalToProcess = $videoFilesMap.Count + $subtitleFiles.Count
+
+    foreach ($videoFile in $videoFilesMap.Values) {
+        $fileCounter++
+        Write-Progress -Activity "Processing Files" -Status "$fileCounter of $totalToProcess - $($videoFile.Name)" -PercentComplete (($fileCounter / $totalToProcess) * 100)
+        Write-Verbose "[$fileCounter/$totalToProcess] Processing video: $($videoFile.Name)"
         $stats.Processed++
-        Write-Verbose "Processing orphaned subtitle: $($subFile.Name)"
-        
-        # Use the same logic as for regular files, but ensure we mark it as a subtitle
-        # (This is a simplified version - in a real script you might want to consolidate this logic)
-        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($subFile.Name)
-        $matched = $false
-        
-        # Try to extract show info from subtitle name
-        foreach ($pattern in $config.SeasonEpisodePatterns) {
-            if ($baseName -match $pattern) {
-                $season = if ($matches.Count -gt 2) { $matches[1].ToString().PadLeft(2, '0') } else { "01" }
-                $episode = $matches[-1].ToString().PadLeft(2, '0')
-                $showNameRaw = ($baseName -split $pattern)[0]
-                $matched = $true
-                break
-            }
-        }
-        
-        if (-not $matched) {
-            Write-Warning "Could not parse info from orphaned subtitle: $($subFile.Name)"
+
+        $fileInfo = Parse-FileInfo -File $videoFile
+        if (-not $fileInfo.Matched) {
+            Write-Warning "[$fileCounter/$totalToProcess] Could not parse season/episode from: $($videoFile.Name)"
             $stats.Skipped++
             continue
         }
-        
-        # Process and rename subtitle (similar to main file processing)
-        $showName = Format-ShowName -Name $showNameRaw -TitleCase:$TitleCase -IgnorePunctuation:$IgnorePunctuation
-        $year = Extract-Year -FileName $baseName
-        
-        $newBaseName = "${showName} S${season}E${episode}"
-        if ($year) { $newBaseName += " ($year)" }
-        
-        $langCode = "en" # Default
-        if ($baseName -match "\.($($config.LanguageCodes -join '|'))\s*$") {
-            $langCode = $matches[1]
+
+        $showName = Format-ShowName -Name $fileInfo.ShowName -TitleCase:$TitleCase -IgnorePunctuation:$IgnorePunctuation
+        if ([string]::IsNullOrWhiteSpace($showName)) {
+            Write-Warning "[$fileCounter/$totalToProcess] Show name is empty after formatting: $($videoFile.Name)"
+            $stats.Skipped++
+            continue
         }
-        
-        $newFileName = "${newBaseName}.${langCode}$($subFile.Extension)"
-        $newFileName = Get-ValidFileName -FileName $newFileName
-        
-        $targetDir = if ($MoveToSeasonFolders) {
-            New-SeasonFolder -BasePath $subFile.DirectoryName -Season $season
+
+        # Build new filename
+        $newBaseName = if ($fileInfo.IsSpecial) {
+            "$($showName) - Special S$($fileInfo.Season)E$($fileInfo.Episode)"
         }
         else {
-            $subFile.DirectoryName
+            "$($showName) S$($fileInfo.Season)E$($fileInfo.Episode)"
         }
-        
-        $newPath = Join-Path $targetDir $newFileName
-        
-        if ((Test-Path $newPath) -and -not $Force -and ($subFile.FullName -ne $newPath)) {
-            Write-Warning "Cannot rename orphaned subtitle '$($subFile.Name)' - '$newFileName' already exists"
-            $stats.Skipped++
-            continue
+        if ($fileInfo.Year) { $newBaseName += " ($($fileInfo.Year))" }
+        if ($fileInfo.Resolution) { $newBaseName += " [$($fileInfo.Resolution)]" }
+
+        $newFileName = Get-ValidFileName -FileName ($newBaseName + $fileInfo.Extension)
+        $processedItems[$fileInfo.BaseName] = $newBaseName # Store for subtitles
+
+        $targetDir = if ($MoveToSeasonFolders) {
+            New-SeasonFolder -BasePath $videoFile.DirectoryName -Season $fileInfo.Season
         }
-        
-        try {
-            if ($PSCmdlet.ShouldProcess($subFile.Name, "Rename orphaned subtitle to $newFileName")) {
-                if ($subFile.DirectoryName -ne $targetDir) {
-                    if (-not (Test-Path $targetDir)) {
-                        New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
-                    }
-                    Move-Item -Path $subFile.FullName -Destination $newPath -Force:$Force
-                    $stats.Moved++
-                    $stats.Renamed++
-                }
-                else {
-                    $success = Rename-WithRetry -Path $subFile.FullName -NewName $newFileName -MaxRetries $config.MaxRetries -DelaySeconds $config.RetryDelaySeconds
-                    if ($success) {
-                        $stats.Renamed++
-                    }
-                    else {
-                        $stats.Errors++
-                    }
-                }
-                
-                Write-Host "Renamed orphaned subtitle '$($subFile.Name)' to '$newFileName'" -ForegroundColor Green
+        else {
+            $videoFile.DirectoryName
+        }
+
+        $result = Move-File -File $videoFile -NewName $newFileName -TargetDir $targetDir -Force:$Force
+        if ($result.Renamed) { $stats.Renamed++ }
+        if ($result.Moved) { $stats.Moved++ }
+        if ($result.Skipped) { $stats.Skipped++ }
+        if ($result.Error) { $stats.Errors++ }
+    }
+
+    # Process subtitle files
+    foreach ($subFile in $subtitleFiles) {
+        $fileCounter++
+        Write-Progress -Activity "Processing Files" -Status "$fileCounter of $totalToProcess - $($subFile.Name)" -PercentComplete (($fileCounter / $totalToProcess) * 100)
+        Write-Verbose "[$fileCounter/$totalToProcess] Processing subtitle: $($subFile.Name)"
+        $stats.Processed++
+
+        $subBaseName = [System.IO.Path]::GetFileNameWithoutExtension($subFile.Name)
+        $langCode = "en" # Default
+        $langPattern = "\.($($config.LanguageCodes -join '|'))\s*$"
+        $videoBaseName = $subBaseName
+        if ($subBaseName -match $langPattern) {
+            $langCode = $matches[1]
+            $videoBaseName = $subBaseName -replace $langPattern, ''
+        }
+
+        if ($processedItems.ContainsKey($videoBaseName)) {
+            # Matched a video that was processed
+            $newBaseName = $processedItems[$videoBaseName]
+            $newFileName = Get-ValidFileName -FileName ("${newBaseName}.${langCode}$($subFile.Extension)")
+
+            $fileInfo = Parse-FileInfo -File ($videoFilesMap[$videoBaseName])
+            $targetDir = if ($MoveToSeasonFolders) {
+                New-SeasonFolder -BasePath $subFile.DirectoryName -Season $fileInfo.Season
             }
+            else {
+                $subFile.DirectoryName
+            }
+
+            $result = Move-File -File $subFile -NewName $newFileName -TargetDir $targetDir -Force:$Force
+            if ($result.Renamed) { $stats.Renamed++ }
+            if ($result.Moved) { $stats.Moved++ }
+            if ($result.Skipped) { $stats.Skipped++ }
+            if ($result.Error) { $stats.Errors++ }
         }
-        catch {
-            Write-Error "Failed to rename orphaned subtitle '$($subFile.Name)': $_"
-            $stats.Errors++
+        else {
+            # Orphaned subtitle
+            Write-Warning "[$fileCounter/$totalToProcess] Orphaned subtitle (no matching video found): $($subFile.Name)"
+            $stats.Skipped++
         }
     }
 }
 
 end {
     Write-Progress -Activity "Processing Files" -Completed
-    
+
     # Print summary
     Write-Host "`n==== Operation Summary ====" -ForegroundColor Cyan
     Write-Host "Files processed: $($stats.Processed)" -ForegroundColor White
@@ -746,10 +581,10 @@ end {
     if ($stats.Errors -gt 0) {
         Write-Host "Errors:          $($stats.Errors)" -ForegroundColor Red
     }
-    
+
     Write-Host "`nLog file: $LogPath" -ForegroundColor Cyan
     Write-Host "---------------------------------------------------" -ForegroundColor Cyan
-    
+
     try {
         Stop-Transcript
     }
