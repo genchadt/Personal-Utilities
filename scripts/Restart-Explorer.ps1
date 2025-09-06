@@ -18,6 +18,7 @@ settings have been changed.
     try {
         Write-Debug "Stopping process Explorer.exe"
         Stop-Process -Name explorer -Force
+        Start-Sleep -Milliseconds 500
         Write-Debug "Explorer.exe stopped successfully"
     } catch {
         Write-Warning "Failed to stop Explorer.exe: $_"
