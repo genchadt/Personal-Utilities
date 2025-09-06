@@ -117,7 +117,7 @@ function Convert-Image {
         return
     }
 
-    $inputFiles = Get-ChildItem -Path . -Filter "*.$InputFormat"
+    $inputFiles = Get-ChildItem -Path $Path -Filter "*.$InputFormat" -Recurse:$Recurse -ErrorAction SilentlyContinue
 
     if ($inputFiles.Count -eq 0) {
         Write-Host "No .$InputFormat files found in the current directory." -ForegroundColor Yellow
