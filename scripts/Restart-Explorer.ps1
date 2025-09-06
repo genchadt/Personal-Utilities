@@ -14,11 +14,16 @@ settings have been changed.
     param ()
 
     Write-Verbose "Restarting Explorer.exe..."
-    Stop-Process -Name explorer -Force
+    
+    try {
+        Write-Debug "Stopping process Explorer.exe"
+        Stop-Process -Name explorer -Force
+        Write-Debug "Explorer.exe stopped successfully"
+    } catch {
+        Write-Warning "Failed to stop Explorer.exe: $_"
+    }
 
-    Start-Sleep -Milliseconds 500
-
-    Start-Process explorer.exe
+    Write-Verbose "Starting Explorer.exe..."
 }
 
 Restart-Explorer @PSBoundParameters
