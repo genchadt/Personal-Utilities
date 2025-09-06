@@ -67,9 +67,11 @@ function Convert-Image {
     [CmdletBinding()]
     param (
         [Parameter()]
+        [ValidateSet("svg", "png", "jpg", "jpeg", "tiff", "bmp", "gif")]
         [string]$InputFormat = "svg",
 
         [Parameter()]
+        [ValidateSet("svg", "png", "jpg", "jpeg", "tiff", "bmp", "gif")]
         [string]$OutputFormat = "png",
 
         [Parameter()]
@@ -82,9 +84,11 @@ function Convert-Image {
         [string]$Filter = "Lanczos",
 
         [Parameter()]
+        [ValidateRange(0, 100)]
         [int]$Quality = 100,
 
         [Parameter()]
+        [ValidateRange(0, 9)]
         [int]$CompressionLevel = 9,
 
         [Parameter()]
