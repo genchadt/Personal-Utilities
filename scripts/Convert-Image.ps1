@@ -1,6 +1,12 @@
 [CmdletBinding()]
 param (
     [Parameter()]
+    [String]$Path,
+
+    [Parameter()]
+    [switch]$Recurse,
+
+    [Parameter()]
     [string]$InputFormat,
 
     [Parameter()]
@@ -40,6 +46,9 @@ function Convert-Image {
 .PARAMETER Path
     The path to the directory containing the images to convert. Defaults to the current directory.
 
+.PARAMETER Recurse
+    If specified, the script will search for images in all subdirectories.
+
 .PARAMETER InputFormat
     The input image format. Defaults to "svg".
 
@@ -66,6 +75,13 @@ function Convert-Image {
 #>
     [CmdletBinding()]
     param (
+        [Parameter()]
+        [ValidateScript({ Test-Path $_ -PathType Container })]
+        [string]$Path = $PWD,
+
+        [Parameter()]
+        [switch]$Recurse,
+
         [Parameter()]
         [ValidateSet("svg", "png", "jpg", "jpeg", "tiff", "bmp", "gif")]
         [string]$InputFormat = "svg",
